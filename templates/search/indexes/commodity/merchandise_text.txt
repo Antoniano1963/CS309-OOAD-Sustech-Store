@@ -1,0 +1,4 @@
+{{ object.name }} # 根据书籍的名称建立索引
+{{ object.description }} # 根据书籍的描述建立索引
+{{ object.class_level_1.name_str }} # 根据书籍的描述建立索引
+{{ object.class_level_2.name_str }} # 根据书籍的描述建立索引
