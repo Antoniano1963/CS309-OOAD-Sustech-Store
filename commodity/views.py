@@ -90,6 +90,7 @@ def commodity_detail(request):
         'class_level_1': current_merchandise.class_level_1.name,
         'class_level_2': current_merchandise.class_level_2.name,
         'allow_face_trade': current_merchandise.allow_face_trade,
+        'as_favorite_number': len(current_merchandise.who_favourite),
     }, status=200)
 
 
@@ -148,6 +149,7 @@ def add_favorite_merchandise_handler(request):
         }, status=200)
     try:
         favorite_mer_id = signer.unsign_object(favorite_mer_id)
+        favorite_mer = commodity.models.Merchandise.objects.get(favorite_mer_id)
     except:
         return JsonResponse({
             'status': '300',
@@ -156,6 +158,8 @@ def add_favorite_merchandise_handler(request):
     try:
         current_user.favorite_merchandise.append(favorite_mer_id)
         current_user.save()
+        favorite_mer.who_favourite.append(current_user.id)
+        favorite_mer.save()
         return JsonResponse({
             'status': '200',
             'message': '收藏成功'
@@ -165,37 +169,6 @@ def add_favorite_merchandise_handler(request):
             'status': '300',
             'message': 'id添加异常'
         }, status=200)
-
-
-# @login_required()
-# def add_shopping_trolley_handler(request):
-#     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-#     signer = TimestampSigner()
-#     favorite_mer_id = request.POST.get('mer_id', None)
-#     if not favorite_mer_id:
-#         return JsonResponse({
-#             'status': '300',
-#             'message': 'POST字段不全'
-#         }, status=200)
-#     try:
-#         favorite_mer_id = signer.unsign_object(favorite_mer_id)
-#     except:
-#         return JsonResponse({
-#             'status': '300',
-#             'message': 'id解码异常'
-#         }, status=200)
-#     try:
-#         current_user.shopping_trolley.append(favorite_mer_id)
-#         current_user.save()
-#         return JsonResponse({
-#             'status': '300',
-#             'message': '收藏成功'
-#         }, status=200)
-#     except:
-#         return JsonResponse({
-#             'status': '300',
-#             'message': 'id添加异常'
-#         }, status=200)
 
 
 @login_required()
@@ -226,6 +199,8 @@ def add_favorite_business_handler(request):
     # try:
     current_user.favorite_sellers.append(mer_upload_user.id)
     current_user.save()
+    mer_upload_user.as_favorite_business_number += 1
+    mer_upload_user.save()
     return JsonResponse({
         'status': '200',
         'message': '收藏成功'

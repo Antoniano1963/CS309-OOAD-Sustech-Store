@@ -13,6 +13,7 @@ class Transaction(models.Model):
         FINISH = (5, '已送达')
         DISPUTE = (6, '有争议')
         QRWAIT = (7, '二维码支付等待确认')
+        SOVED = (8, '争议解决')
 
     class QRPayStatus(models.IntegerChoices):
         INITIAL = (1, '初始状态')
@@ -88,11 +89,13 @@ class TransactionProblem(models.Model):
     problem_description = models.CharField(max_length=512)
     problem_upload_date = models.DateTimeField(auto_now_add=True)
     problem_transaction = models.ForeignKey('order.Transaction', on_delete=models.CASCADE, related_name='transaction_rela_problem')
-    problem_uploader = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name="user_rela_problem")
+    problem_uploader = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name="user_upload_problem")
     problem_type = models.IntegerField(choices=ProblemType.choices)
     superuser_log = models.CharField(max_length=1024, null=True, blank=True)
     handle_superuser = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name="superuser_rela_problem")
     handle_date = models.DateTimeField(null=True)
+    problem_role = models.IntegerField(choices=ProblemType.choices, default=2)
+    problem_user = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name="user_rela_problem")
 
     def get_detail_info(self):
         signer = TimestampSigner()

@@ -59,6 +59,8 @@ class User(models.Model):
     stars_for_task = models.IntegerField(default=5)
     comment_number_for_task = models.IntegerField(default=0)
     has_header_photo = models.BooleanField(default=False)
+    problem_number = models.IntegerField(default=0)
+    as_favorite_business_number = models.IntegerField(default=0)
     notice_info_unread = ArrayField(
         base_field=models.JSONField(),
         blank=True,
@@ -111,6 +113,7 @@ class User(models.Model):
             'sold_goods_number': self.sold_goods_number,
             "total_star": self.stars_for_good*0.5 + self.stars_for_deliver*0.3 + self.stars_for_attitude*0.2,
             'has_header_photo': self.has_header_photo,
+            'as_favorite_business_number': self.as_favorite_business_number,
         })
 
     def get_simple_info(self):
@@ -140,6 +143,7 @@ class User(models.Model):
             'comment_number': self.comment_number,
             'money': self.money,
             'has_header_photo': self.has_header_photo,
+            'as_favorite_business_number': self.as_favorite_business_number,
         })
 
     def get_ORCode_url(self):

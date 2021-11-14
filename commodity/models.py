@@ -138,6 +138,7 @@ class Merchandise(models.Model):
             'favourite_number': self.favourite_number,
             'allow_face_trade': self.allow_face_trade,
             'browse_number': self.browse_number,
+            'as_favorite_number': len(self.who_favourite),
         })
 
     def get_details(self):
@@ -182,6 +183,7 @@ class Merchandise(models.Model):
             'favourite_number': self.favourite_number,
             'fineness_id': self.fineness,
             'browse_number': self.browse_number,
+            'as_favorite_number': len(self.who_favourite),
         })
 
 

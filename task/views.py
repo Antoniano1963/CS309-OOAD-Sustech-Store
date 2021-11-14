@@ -141,6 +141,46 @@ def release_task_others(request:HttpRequest):
     }, status=200)
 
 
+
+@transaction.atomic
+@login_required(status=1)
+def cancel_task(request:HttpRequest):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    task_id = request.POST.get('task_id', None)
+    if not task_id:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST错误'
+        }, status=200)
+    signer = TimestampSigner()
+    try:
+        task_id = signer.unsign_object(task_id)
+        current_task = task.models.Task.objects.get(id=task_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'task不存在'
+        }, status=200)
+    task_name = current_task.name
+    sid = transaction.savepoint()
+    try:
+        current_user.money += current_task.price
+        current_user.save()
+        current_task.delete()
+    except:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '服务器错误'
+        }, status=200)
+    transaction.savepoint_commit(sid)
+    send_notice(current_user.id, '任务{}取消成功'.format(task_name))
+    return JsonResponse({
+        'status': '200',
+        'message': '取消成功',
+    }, status=200)
+
+
 @transaction.atomic
 @login_required(status=1)
 def get_task(request:HttpRequest):
@@ -352,6 +392,7 @@ def task_comment(request):
         comment_number = task_uploader.comment_number_for_task
         task_uploader.stars_for_task = (task_uploader.stars_for_task * comment_number +
                                         comment_level) / (comment_number+1)
+        task_uploader.comment_number_for_task += 1
         task_uploader.save()
 
     except Exception as e:

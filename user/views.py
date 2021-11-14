@@ -16,7 +16,7 @@ import hashlib
 import django.utils.timezone
 import commodity.models
 import user.models
-from order.models import Transaction
+from order.models import Transaction, TransactionProblem
 from utils.get_user_selling import get_user_selling
 from .createCaptcha import *
 from utils import myemail_sender, random_utils
@@ -454,6 +454,117 @@ def success_fuc(request):
     }, status=200)
 
 
+
+
+@login_required()
+def seller_wait_payment_fuc(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    all_user_transaction_wait_payment = Transaction.objects.filter(
+        transaction_sender=current_user).filter(status__exact=1)
+    transaction_list = []
+    for i in all_user_transaction_wait_payment.all():
+        transaction_list.append(i.get_simple_overview())
+    if all_user_transaction_wait_payment.count() > end_position:
+        has_next = True
+    else:
+        has_next = False
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'return_transaction': transaction_list[start_position: end_position],
+        'has_next': str(has_next)
+    }, status=200)
+
+
+@login_required()
+def seller_wait_deliver_fuc(request):
+        current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+        start_position = request.POST.get('start_position', 0)
+        end_position = request.POST.get('end_position', 10)
+        all_user_transaction_wait_deliver = Transaction.objects.filter(
+            transaction_sender=current_user).filter(status__exact=2)
+        transaction_list = []
+        for i in all_user_transaction_wait_deliver.all():
+            transaction_list.append(i.get_simple_overview())
+        return_list_len = len(transaction_list)
+        if return_list_len > end_position:
+            has_next = True
+        else:
+            has_next = False
+        return JsonResponse({
+            'status': '200',
+            'message': '查询成功',
+            'return_transaction': transaction_list[start_position: end_position],
+            'has_next': str(has_next)
+        }, status=200)
+
+
+@login_required()
+def seller_wait_receiving_fuc(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    all_user_transaction_wait_receiving = Transaction.objects.filter(
+        transaction_sender=current_user).filter(status__exact=3)
+    transaction_list = []
+    for i in all_user_transaction_wait_receiving.all():
+        transaction_list.append(i.get_simple_overview())
+    if all_user_transaction_wait_receiving.count() > end_position:
+        has_next = True
+    else:
+        has_next = False
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'return_transaction': transaction_list[start_position: end_position],
+        'has_next': str(has_next)
+    }, status=200)
+
+
+@login_required()
+def seller_wait_comment_fuc(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    all_user_transaction_success = Transaction.objects.filter(transaction_sender=current_user).filter(status__exact=4)
+    transaction_list = []
+    for i in all_user_transaction_success.all():
+        transaction_list.append(i.get_simple_overview())
+    if all_user_transaction_success.count() > end_position:
+        has_next = True
+    else:
+        has_next = False
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'return_transaction': transaction_list[start_position: end_position],
+        'has_next': str(has_next)
+    }, status=200)
+
+
+@login_required()
+def seller_success_fuc(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    all_user_transaction_success = Transaction.objects.filter(transaction_sender=current_user).filter(status__exact=5)
+    transaction_list = []
+    for i in all_user_transaction_success.all():
+        transaction_list.append(i.get_simple_overview())
+    if all_user_transaction_success.count() > end_position:
+        has_next = True
+    else:
+        has_next = False
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'return_transaction': transaction_list[start_position: end_position],
+        'has_next': str(has_next)
+    }, status=200)
+
+
 file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
 
 
@@ -620,6 +731,42 @@ def add_address(request):
     #         'status': '400',
     #         'message': '创建失败'
     #     }, status=200)
+
+
+@login_required(status=1)
+def delete_address(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    addr_id = request.POST.get('addr_id', None)
+    if not addr_id:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段不全'
+        }, status=200)
+    try:
+        signer = TimestampSigner()
+        addr_id = signer.unsign_object(addr_id)
+        current_addr = user.models.Address.objects.get(id=addr_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'id错误'
+        }, status=200)
+    # try:
+    mer_list = commodity.models.Merchandise.objects.filter(sender_addr=current_addr).all()
+    return_mer_list = []
+    if len(mer_list) > 0:
+        for mer in mer_list:
+            return_mer_list.append(mer.get_simple_info())
+        return JsonResponse({
+            'status': '400',
+            'message': '关联mer',
+            'return_mer_list': return_mer_list
+        }, status=200)
+    current_addr.delete()
+    return JsonResponse({
+        'status': '200',
+        'message': '成功'
+    }, status=200)
 
 
 @login_required()
@@ -1133,8 +1280,9 @@ def get_all_comments(request):
     }, status=200)
 
 
+#推荐
 @login_required()
-def get_notification_list(request):
+def get_recommend_list(request):
     mer_list = commodity.models.Merchandise.objects.filter(status=1).all()
     if len(mer_list) < 10:
         return JsonResponse({
@@ -1169,10 +1317,37 @@ def get_notification_list(request):
 
     return JsonResponse({
         'status': '200',
-        'message': '原密码错误',
+        'message': '成功',
         'return_List': return_list,
     }, status=200)
 
+
+@login_required(status=1)
+def get_problem_list(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
+    problem_list = TransactionProblem.objects.filter(problem_user=current_user).all()
+    return_list = []
+    for pro in problem_list:
+        return_list.append(pro.get_detail_info())
+    has_next = False
+    if len(return_list) > end_position:
+        has_next = True
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+        'return_List': return_list,
+        'has_next': has_next
+    }, status=200)
 
 
 

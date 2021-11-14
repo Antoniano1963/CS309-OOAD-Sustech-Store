@@ -37,7 +37,7 @@ def detail_fuc(request):
         current_transaction = Transaction.objects.get(id=transaction_id)
     except:
         return JsonResponse({
-            'status': '700',
+            'status': '400',
             'message': '传入的transaction_id 不存在',
         }, status=200)
     return JsonResponse({
@@ -154,7 +154,54 @@ def post_transaction(request:HttpRequest):
 
 @transaction.atomic
 @login_required()
-def commit_transaction_total(request:HttpRequest):
+def cancel_transaction(request:HttpRequest):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    current_tra_id = request.POST.get('tra_id', None)
+    cancel_reason = request.POST.get('cancel_reason', None)
+    if not current_tra_id:
+        return JsonResponse({
+            'status': '400',
+            'message': '传入的post字段不全',
+        }, status=200)
+    if not cancel_reason:
+        cancel_reason = '用户未说明原因'
+    try:
+        signer = TimestampSigner()
+        current_tra_id = signer.unsign_object(current_tra_id)
+        current_tra = Transaction.objects.get(id=current_tra_id)
+        if current_tra.status > 1:
+            return JsonResponse({
+                'status': '400',
+                'message': '订单已经被付款，请申请退款',
+            }, status=200)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '传入的id有误',
+        }, status=200)
+    sid = transaction.savepoint()
+    sender_id = current_tra.transaction_sender.id
+    mer_name = current_tra.transaction_merchandise.name
+    try:
+        current_tra.delete()
+    except Exception as e:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '服务器错误',
+        }, status=200)
+    transaction.savepoint_commit(sid)
+    send_notice(sender_id, '商品{}被取消，取消原因为: {}'.format(mer_name, cancel_reason))
+    send_notice(current_user.id, '商品{}的订单取消成功'.format(mer_name))
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+    }, status=200)
+
+
+@transaction.atomic
+@login_required()
+def commit_transaction_total(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_identify_code = request.POST.get('current_identify_code', None)
     pay_password = request.POST.get('pay_password', None)
@@ -680,6 +727,7 @@ def already_receive_transaction(request:HttpRequest):
     }, status=200)
 
 
+#默认好评前端生成
 @transaction.atomic
 @login_required()
 def comment_transaction(request:HttpRequest):
@@ -737,6 +785,7 @@ def comment_transaction(request:HttpRequest):
                                                * (comment_number + 10) + comment_level_mer) / (comment_number + 11)
         if current_tra.pay_method == 3:
             cur_tra_uploader.money += current_tra.total_price
+        cur_tra_uploader.comment_number += 1
         cur_tra_uploader.save()
 
     except Exception as e:
@@ -796,7 +845,7 @@ def transaction_has_problem(request):
                 'message': '订单状态异常',
             }, status=200)
     elif problem_type == 3:
-        if current_tra.pay_method != 2 or current_tra.QR_pay_status < 2:
+        if current_tra.pay_method != 2 or current_tra.status != 7:
             return JsonResponse({
                 'status': '400',
                 'message': '订单状态异常',
@@ -808,7 +857,7 @@ def transaction_has_problem(request):
                 'message': '订单状态异常',
             }, status=200)
     elif problem_type == 5:
-        if current_tra.status < 2 :
+        if current_tra.status < 2:
             return JsonResponse({
                 'status': '400',
                 'message': '订单状态异常',
