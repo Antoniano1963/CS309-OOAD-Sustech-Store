@@ -12,6 +12,7 @@ urlpatterns = [
     # url('add_shopping_trolley/', views.add_shopping_trolley_handler),
     url('add_favorite_business_handler/', views.add_favorite_business_handler),
     url('search_by_class_label_all/', views.search_by_class_label_all),
-    # url('add_favorite_business_handler/', views.add_favorite_business_handler),
+    url('favorite_business_cancel_handler/', views.favorite_business_cancel_handler),
+    url('favorite_merchandise_cancel_handler/', views.favorite_merchandise_cancel_handler),
 
 ]

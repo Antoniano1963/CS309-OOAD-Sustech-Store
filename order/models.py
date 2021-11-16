@@ -42,6 +42,7 @@ class Transaction(models.Model):
     transaction_price = models.FloatField(default=0)
     total_price = models.FloatField()
     QR_pay_status = models.IntegerField(choices=QRPayStatus.choices, default=1)
+    has_task = models.BooleanField(default=False)
 
     def get_simple_overview(self):
         signer = TimestampSigner()
@@ -59,7 +60,8 @@ class Transaction(models.Model):
             'receiver_location': self.receiver_location.get_basic_info(),
             'sender_location': self.sender_location.get_basic_info(),
             'merchandise_info': self.transaction_merchandise.get_simple_info(),
-            'create_time': str(self.create_time)
+            'create_time': str(self.create_time),
+            'has_task': self.has_task,
         })
 
     def get_basic_overview(self):
@@ -72,7 +74,8 @@ class Transaction(models.Model):
             'merchandise_id': signer.sign_object(self.transaction_merchandise.id),
             'merchandise_name': self.transaction_merchandise.name,
             'merchandise_price': self.transaction_merchandise.price,
-            'merchandise_info': self.transaction_merchandise.get_simple_info()
+            'merchandise_info': self.transaction_merchandise.get_simple_info(),
+            'has_task': self.has_task,
         })
 
 

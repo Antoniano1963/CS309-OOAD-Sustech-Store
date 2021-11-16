@@ -298,25 +298,25 @@ def upload_commodity(request):
         image3 = request.FILES['image3']
     except:
         image3 = None
-    try:
+    # try:
 
-        new_merchandise = commodity.models.Merchandise.objects.create(
-            name=mer_name,
-            description=mer_description,
-            price=mer_price,
-            upload_user=current_user,
-            class_level_1_id=class1_id,
-            class_level_2_id=class2_id,
-            fineness=fineness_id,
-            sender_addr=sender_addr,
-            deliver_price=deliver_price,
-            allow_face_trade=allow_face_trade,
+    new_merchandise = commodity.models.Merchandise.objects.create(
+        name=mer_name,
+        description=mer_description,
+        price=mer_price,
+        upload_user=current_user,
+        class_level_1_id=class1_id,
+        class_level_2_id=class2_id,
+        fineness=fineness_id,
+        sender_addr=sender_addr,
+        deliver_price=deliver_price,
+        allow_face_trade=allow_face_trade,
         )
-    except:
-        return JsonResponse({
-            'status': '600',
-            'message': '重复或键值错误'
-        }, status=200)
+    # except:
+    #     return JsonResponse({
+    #         'status': '600',
+    #         'message': '重复或键值错误'
+    #     }, status=200)
     reopen_img1 = Image.open(image1)
     reopen_img1.thumbnail((200, 100), Image.ANTIALIAS)
     buffer = BytesIO()
@@ -345,11 +345,52 @@ def upload_commodity(request):
     }, status=200)
 
 
+@transaction.atomic()
+@login_required()
+def delete_commodity(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    mer_id = request.POST.get('mer_id', None)
+    signer = TimestampSigner()
+    if not mer_id:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段不全',
+        }, status=200)
+    try:
+        mer_id = signer.unsign_object(mer_id)
+        current_mer = commodity.models.Merchandise.objects.get(id=mer_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'id错误',
+        }, status=200)
+    if current_mer.status != 1:
+        return JsonResponse({
+            'status': '400',
+            'message': '商品状态异常',
+        }, status=200)
+    sid = transaction.savepoint()
+    try:
+        current_mer.status = 0
+    except:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '服务器错误',
+        }, status=200)
+    transaction.savepoint_commit(sid)
+    send_notice(current_user.id, "商品{}下架成功".format(current_mer.name))
+    return JsonResponse({
+        'status': '200',
+        'message': "商品{}下架成功".format(current_mer.name)
+    }, status=200)
+
+
 @login_required()
 def wait_payment_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    start_position = int(request.POST.get('start_position', 0))
+    end_position = int(request.POST.get('end_position', 10))
     all_user_transaction_wait_payment = Transaction.objects.filter(
         transaction_receiver=current_user).filter(status__exact=1)
     transaction_list = []
@@ -372,6 +413,14 @@ def wait_deliver_fuc(request):
         current_user = user.models.User.objects.get(id=request.session.get('user_id'))
         start_position = request.POST.get('start_position', 0)
         end_position = request.POST.get('end_position', 10)
+        try:
+            start_position = int(start_position)
+            end_position = int(end_position)
+        except:
+            JsonResponse({
+                'status': '400',
+                'message': '字段异常',
+            }, status=200)
         all_user_transaction_wait_deliver = Transaction.objects.filter(
             transaction_receiver=current_user).filter(status__exact=2)
         transaction_list = []
@@ -395,6 +444,14 @@ def wait_receiving_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_wait_receiving = Transaction.objects.filter(
         transaction_receiver=current_user).filter(status__exact=3)
     transaction_list = []
@@ -417,6 +474,14 @@ def wait_comment_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_success = Transaction.objects.filter(transaction_receiver=current_user).filter(status__exact=4)
     transaction_list = []
     for i in all_user_transaction_success.all():
@@ -438,6 +503,14 @@ def success_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_success = Transaction.objects.filter(transaction_receiver=current_user).filter(status__exact=5)
     transaction_list = []
     for i in all_user_transaction_success.all():
@@ -454,13 +527,19 @@ def success_fuc(request):
     }, status=200)
 
 
-
-
 @login_required()
-def seller_wait_payment_fuc(request):
+def wait_payment_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_wait_payment = Transaction.objects.filter(
         transaction_sender=current_user).filter(status__exact=1)
     transaction_list = []
@@ -479,10 +558,18 @@ def seller_wait_payment_fuc(request):
 
 
 @login_required()
-def seller_wait_deliver_fuc(request):
+def wait_deliver_fuc_seller(request):
         current_user = user.models.User.objects.get(id=request.session.get('user_id'))
         start_position = request.POST.get('start_position', 0)
         end_position = request.POST.get('end_position', 10)
+        try:
+            start_position = int(start_position)
+            end_position = int(end_position)
+        except:
+            JsonResponse({
+                'status': '400',
+                'message': '字段异常',
+            }, status=200)
         all_user_transaction_wait_deliver = Transaction.objects.filter(
             transaction_sender=current_user).filter(status__exact=2)
         transaction_list = []
@@ -502,10 +589,18 @@ def seller_wait_deliver_fuc(request):
 
 
 @login_required()
-def seller_wait_receiving_fuc(request):
+def wait_receiving_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_wait_receiving = Transaction.objects.filter(
         transaction_sender=current_user).filter(status__exact=3)
     transaction_list = []
@@ -524,10 +619,18 @@ def seller_wait_receiving_fuc(request):
 
 
 @login_required()
-def seller_wait_comment_fuc(request):
+def wait_comment_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_success = Transaction.objects.filter(transaction_sender=current_user).filter(status__exact=4)
     transaction_list = []
     for i in all_user_transaction_success.all():
@@ -545,10 +648,18 @@ def seller_wait_comment_fuc(request):
 
 
 @login_required()
-def seller_success_fuc(request):
+def success_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
+        }, status=200)
     all_user_transaction_success = Transaction.objects.filter(transaction_sender=current_user).filter(status__exact=5)
     transaction_list = []
     for i in all_user_transaction_success.all():
@@ -634,8 +745,8 @@ def all_user_favorite_merchandise(request):
             'message': '数据库列表id错误'
         }, status=200)
 
-    start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    start_position = int(request.POST.get('start_position', 0))
+    end_position = int(request.POST.get('end_position', 10))
     return_len = len(favorite_merchandise_data_list)
     if return_len > end_position:
         has_next = True
@@ -669,8 +780,8 @@ def all_user_favorite_business(request):
             'message': '数据库列表id错误'
         }, status=200)
 
-    start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    start_position = int(request.POST.get('start_position', 0))
+    end_position = int(request.POST.get('end_position', 10))
 
     return_len = len(favorite_business_data_list)
     if return_len > end_position:
@@ -752,7 +863,7 @@ def delete_address(request):
             'message': 'id错误'
         }, status=200)
     # try:
-    mer_list = commodity.models.Merchandise.objects.filter(sender_addr=current_addr).all()
+    mer_list = commodity.models.Merchandise.objects.filter(status__gt=0).filter(sender_addr=current_addr).all()
     return_mer_list = []
     if len(mer_list) > 0:
         for mer in mer_list:
@@ -1029,6 +1140,12 @@ def add_cart(request:HttpRequest) -> JsonResponse:
     try:
         signer =TimestampSigner()
         mer_id = signer.unsign_object(mer_id)
+        current_mer = commodity.models.Merchandise.objects.get(id=mer_id)
+        if current_mer.upload_user == current_user:
+            return JsonResponse({
+                'status': '400',
+                'message': '不能添加自己的商品进购物车'
+            }, status=200)
         conn = get_redis_connection('default')
         key = "cart_{}".format(current_user.id)
         conn.hset(key, mer_id, 1)
@@ -1215,7 +1332,7 @@ def change_password(request):
     send_notice(current_user.id, '修改密码成功')
     return JsonResponse({
         'status': '200',
-        'message': '修改密码错误'
+        'message': '修改成功'
     }, status=200)
 
 
@@ -1249,7 +1366,7 @@ def change_pay_password(request):
     send_notice(current_user.id, '修改支付密码成功')
     return JsonResponse({
         'status': '200',
-        'message': '修改密码错误'
+        'message': '修改成功'
     }, status=200)
 
 
@@ -1348,6 +1465,53 @@ def get_problem_list(request):
         'return_List': return_list,
         'has_next': has_next
     }, status=200)
+
+
+def forget_password_email(request):
+    if request.method == 'POST':
+        key = 'ip_{}_send_forget_email'.format(request.META['REMOTE_ADDR'])
+        conn = get_redis_connection('default')
+        if request.session.get('is_login', False):
+            return JsonResponse({
+                'status': '300',
+                'message': 'User already login {}'.format(request.session.get('user_name', 'unknown_name'))
+            })
+        user_email = request.POST.get('user_email')
+        code = random_utils.random_str(6, 'upper_str')
+        send_active_email.delay(code, 'a', user_email, type=3)
+        request.session['forget_code'] = code
+        request.session['forget_email'] = user_email
+        has_send = conn.get(key)
+        if has_send:
+            return JsonResponse({
+                'status': '407',
+                'message': '60s内重复发送邮件'
+            })
+        else:
+            conn.set(key, 1, 50)
+        return JsonResponse({
+            'status': '200',
+            'message': '邮件发送成功'
+        })
+    return HttpResponse(status=500)
+
+
+def forget_pasword(request):
+    if request.method == 'POST':
+        code = request.session['forget_code']
+        post_code = request.POST.get('post_code', None)
+        if code != post_code:
+            return JsonResponse({
+                'status': '400',
+                'message': 'code错误'
+            })
+        new_password = request.POST.get('new_password', None)
+        forget_email = request.session['forget_email']
+        current_user = user.models.User.objects.filter(email__exact=forget_email)
+        if current_user:
+            current_user = current_user.all()[0]
+        current_user.password = hash_code(new_password)
+    return HttpResponse(status=500)
 
 
 

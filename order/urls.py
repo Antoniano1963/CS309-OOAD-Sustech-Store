@@ -14,4 +14,6 @@ urlpatterns = [
     url('already_send_transaction/', views.already_send_transaction),
     url('already_receive_transaction/', views.already_receive_transaction),
     url('comment_transaction/', views.comment_transaction),
+    url('transaction_has_problem/', views.transaction_has_problem),
+    url('cancel_transaction/', views.cancel_transaction),
 ]

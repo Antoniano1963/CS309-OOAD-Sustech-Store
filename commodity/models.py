@@ -63,6 +63,8 @@ class Merchandise(models.Model):
         ONTRANSACTION = (2, '正在交易')
         PROBLEM = (3, '出现问题')
         SALLED = (4, '已经售出')
+        POSTTRA = (5, '被订单锁定')
+        DELETE = (0, '已删除')
 
     class Fineness(models.IntegerChoices):
         NEW = (1, '全新')
@@ -79,7 +81,7 @@ class Merchandise(models.Model):
     image3 = models.ImageField(upload_to=user_directory_path, null=True, max_length=409600)
     price = models.FloatField()
     deliver_price = models.FloatField(default=0)
-    sender_addr = models.ForeignKey('user.Address', on_delete=models.CASCADE, related_name="addr_mer_0")
+    sender_addr = models.ForeignKey('user.Address', on_delete=models.SET_NULL, related_name="addr_mer_0", null=True)
     thumb = models.ImageField(upload_to=user_thumb_directory_path, null=True, max_length=102400)
     class_level_1 = models.ForeignKey("ClassLevel1", on_delete=models.CASCADE, related_name="mer_class1", null=True)
     class_level_2 = models.ForeignKey("ClassLevel2", on_delete=models.CASCADE, related_name="mer_class2", null=True)
@@ -130,6 +132,7 @@ class Merchandise(models.Model):
             'mer_id': signer.sign_object(self.id),
             'mer_name': self.name,
             'mer_price': self.price,
+            'deliver_price': self.deliver_price,
             'mer_description': self.description,
             'mer_img_url': f"{file_url}{signer.sign_object(info)}",
             # 'mer_Img': i.image1.open(),
@@ -139,6 +142,7 @@ class Merchandise(models.Model):
             'allow_face_trade': self.allow_face_trade,
             'browse_number': self.browse_number,
             'as_favorite_number': len(self.who_favourite),
+            'mer_status': self.status,
         })
 
     def get_details(self):
@@ -184,6 +188,7 @@ class Merchandise(models.Model):
             'fineness_id': self.fineness,
             'browse_number': self.browse_number,
             'as_favorite_number': len(self.who_favourite),
+            'mer_status': self.status,
         })
 
 

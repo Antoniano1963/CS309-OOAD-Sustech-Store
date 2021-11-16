@@ -73,7 +73,7 @@ def set_user_online(user_id):
     redis_connect.set('is_online_{}'.format(user_id), str(True))
 
 
-def add_info_to_dialogue(user_id, dialogue_id, message):
+def add_info_to_dialogue(user_id, dialogue_id, message, data_type=1):
     #这里的user_id是发送消息的人
     signer = TimestampSigner()
     dialogue_id = signer.unsign_object(dialogue_id)
@@ -96,7 +96,8 @@ def add_info_to_dialogue(user_id, dialogue_id, message):
             dict({
                 'date': django.utils.timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'information': message,
-                'which_say': user_id
+                'which_say': user_id,
+                'data_type': data_type,
             })
         )
         current_dialogue.update_date = django.utils.timezone.now()

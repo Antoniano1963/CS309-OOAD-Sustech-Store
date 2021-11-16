@@ -10,6 +10,7 @@ from django.core.signing import TimestampSigner
 from Final_Project1.decotators.login_required import login_required
 from django.db import transaction
 from chat.utils import *
+from order.utils import *
 from django.db.models import Q
 import utils.random_utils
 
@@ -69,6 +70,7 @@ def get_identify_code(request:HttpRequest):
             }, status=200)
 
 
+@transaction.atomic
 @login_required()
 def post_transaction(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
@@ -120,36 +122,40 @@ def post_transaction(request:HttpRequest):
             'status': '400',
             'message': '传入的id有误',
         }, status=200)
-    # try:
-    new_transaction = Transaction.objects.create(
-        transaction_sender=current_sender,
-        transaction_receiver=current_user,
-        transaction_merchandise=current_mer,
-        total_price=current_mer.price + current_mer.deliver_price,
-        sender_location=send_addr,
-        receiver_location=rec_addr
-    )
-    new_transaction.save()
-    if identify_code:
-        conn = get_redis_connection('default')
-        key = 'identify_code_{}'.format(identify_code)
-        tra_list = conn.get(key)
-        if not tra_list:
-            tra_list = []
-        else:
-            tra_list = literal_eval(tra_list)
-        tra_list.append(new_transaction.id)
-        conn.set(key, tra_list)
+    sid = transaction.savepoint()
+    try:
+        new_transaction = Transaction.objects.create(
+            transaction_sender=current_sender,
+            transaction_receiver=current_user,
+            transaction_merchandise=current_mer,
+            total_price=current_mer.price + current_mer.deliver_price,
+            sender_location=send_addr,
+            receiver_location=rec_addr
+        )
+        new_transaction.save()
+        current_mer.status = 5
+        current_mer.save()
+        if identify_code:
+            conn = get_redis_connection('default')
+            key = 'identify_code_{}'.format(identify_code)
+            tra_list = conn.get(key)
+            if not tra_list:
+                tra_list = []
+            else:
+                tra_list = literal_eval(tra_list)
+            tra_list.append(new_transaction.id)
+            conn.set(key, str(tra_list))
+    except:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '创建订单失败',
+        }, status=200)
     return JsonResponse({
         'status': '200',
         'message': '成功',
         'transaction_id': signer.sign_object(new_transaction.id)
     }, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '创建订单失败',
-    #     }, status=200)
 
 
 @transaction.atomic
@@ -183,6 +189,9 @@ def cancel_transaction(request:HttpRequest):
     sender_id = current_tra.transaction_sender.id
     mer_name = current_tra.transaction_merchandise.name
     try:
+        current_mer = current_tra.transaction_merchandise
+        current_mer.status = 1
+        current_mer.save()
         current_tra.delete()
     except Exception as e:
         transaction.savepoint_rollback(sid)
@@ -207,7 +216,7 @@ def commit_transaction_total(request):
     pay_password = request.POST.get('pay_password', None)
     if not all((current_identify_code, pay_password)):
         return JsonResponse({
-            'status': '200',
+            'status': '400',
             'message': 'POST字段不全',
         }, status=200)
     pay_password = hash_code(pay_password)
@@ -227,7 +236,13 @@ def commit_transaction_total(request):
     signer = TimestampSigner()
     cur_tra_list = []
     for i in tra_list:
-        cur_tra_list.append(Transaction.objects.get(i))
+        this_tra = Transaction.objects.get(id=i)
+        if this_tra.transaction_merchandise.upload_user == current_user:
+            return JsonResponse({
+            'status': '400',
+            'message': '不能买自己的商品',
+        }, status=200)
+        cur_tra_list.append(Transaction.objects.get(id=i))
     sum_price = 0
     for current_tra in cur_tra_list:
         sum_price += current_tra.total_price
@@ -237,24 +252,24 @@ def commit_transaction_total(request):
             'message': '余额不足，请充值',
         }, status=200)
     sid = transaction.savepoint()
+    if rec_address_id:
+        rec_address_id = signer.unsign_object(rec_address_id)
+        try:
+            change_location = user.models.Address.objects.get(id=rec_address_id)
+        except:
+            return JsonResponse({
+                'status': '400',
+                'message': '地址id错误',
+            }, status=200)
     for current_tra in cur_tra_list:
-        if rec_address_id:
-            rec_address_id = signer.unsign_object(rec_address_id)
-            try:
-                current_tra.receiver_location = user.models.Address.objects.get(id=rec_address_id)
-            except:
-                return JsonResponse({
-                    'status': '400',
-                    'message': '地址id错误',
-                }, status=200)
-
         if current_tra.status != 1:
             return JsonResponse({
                 'status': '400',
                 'message': '订单异常',
             }, status=200)
         try:
-            if current_tra.transaction_merchandise.status != 1:
+            current_tra.receiver_location = change_location
+            if current_tra.transaction_merchandise.status != 5:
                 raise Exception
             current_user.money -= current_tra.total_price
             current_tra.pay_time = django.utils.timezone.now()
@@ -271,9 +286,11 @@ def commit_transaction_total(request):
                 'message': '服务器错误',
             }, status=200)
     transaction.savepoint_commit(sid)
+    for mer_id in tra_list:
+        server_cart_del(mer_id, current_user.id)
     for current_tra in cur_tra_list:
         send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name))
-    conn.set(key, None)
+    conn.delete(key)
     return JsonResponse({
             'status': '200',
             'message': '成功',
@@ -331,7 +348,7 @@ def commit_transaction_virtual(request):
         }, status=200)
     sid = transaction.savepoint()
     try:
-        if current_tra.transaction_merchandise.status != 1:
+        if current_tra.transaction_merchandise.status != 5:
             raise Exception
         current_user.money -= current_tra.total_price
         current_tra.pay_time = django.utils.timezone.now()
@@ -348,6 +365,7 @@ def commit_transaction_virtual(request):
             'message': '服务器错误',
         }, status=200)
     transaction.savepoint_commit(sid)
+    server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
     send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name))
     return JsonResponse({
             'status': '200',
@@ -397,7 +415,7 @@ def commit_transaction_face(request:HttpRequest):
         }, status=200)
     sid = transaction.savepoint()
     try:
-        if current_tra.transaction_merchandise.status != 1:
+        if current_tra.transaction_merchandise.status != 5:
             raise Exception
         current_tra.pay_time = django.utils.timezone.now()
         current_tra.transaction_merchandise.status = 2
@@ -412,6 +430,7 @@ def commit_transaction_face(request:HttpRequest):
             'message': '服务器错误',
         }, status=200)
     transaction.savepoint_commit(sid)
+    server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
     send_notice(current_tra.transaction_sender.id, '商品{}被勾下单，支付方式为{}，请尽快发货'.format(current_tra.transaction_merchandise.name, current_tra.pay_method))
     return JsonResponse({
             'status': '200',
@@ -553,7 +572,7 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
         }, status=200)
     sid = transaction.savepoint()
     try:
-        if current_tra.transaction_merchandise.status != 1:
+        if current_tra.transaction_merchandise.status != 5:
             raise Exception
         current_tra.pay_time = django.utils.timezone.now()
         current_tra.transaction_merchandise.status = 2
@@ -568,6 +587,7 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
             'message': '服务器错误',
         }, status=200)
     transaction.savepoint_commit(sid)
+    server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
     send_notice(current_tra.transaction_sender.id,
                 '商品{}被通过二维码下单，请在10Min内确认'.format(current_tra.transaction_merchandise.name))
     return JsonResponse({
@@ -743,14 +763,17 @@ def comment_transaction(request:HttpRequest):
                 'message': 'POST字段不全',
         }, status=200)
     signer = TimestampSigner()
-    try:
-        current_tra_id = signer.unsign_object(current_tra_id)
-        current_tra = Transaction.objects.get(id=current_tra_id)
-    except:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
+    # try:
+    current_tra_id = signer.unsign_object(current_tra_id)
+    current_tra = Transaction.objects.get(id=current_tra_id)
+    comment_level_tra = int(float(comment_level_tra))
+    comment_level_mer = int(float(comment_level_mer))
+    comment_level_attitude = int(float(comment_level_attitude))
+    # except:
+    #     return JsonResponse({
+    #         'status': '400',
+    #         'message': '订单异常',
+    #     }, status=200)
     if current_tra.status != 4:
         return JsonResponse({
             'status': '400',
@@ -764,6 +787,9 @@ def comment_transaction(request:HttpRequest):
     sid = transaction.savepoint()
     try:
         current_tra.status = 5
+        current_mer = current_tra.transaction_merchandise
+        current_mer.status = 4
+        current_mer.save()
         current_tra.save()
         new_comment = user.models.Comment.objects.create(
             comment_content=comment_content,
@@ -787,7 +813,6 @@ def comment_transaction(request:HttpRequest):
             cur_tra_uploader.money += current_tra.total_price
         cur_tra_uploader.comment_number += 1
         cur_tra_uploader.save()
-
     except Exception as e:
         transaction.savepoint_rollback(sid)
         return JsonResponse({

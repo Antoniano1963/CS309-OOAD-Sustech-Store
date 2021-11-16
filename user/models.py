@@ -108,7 +108,7 @@ class User(models.Model):
             # 'user_email': self.email,
             'user_identify': self.user_identify,
             'self_description': self.self_description,
-            'header_photo_url': signer.sign_object(info),
+            'header_photo_url': f"{file_url}{signer.sign_object(info)}",
             'uploaded_goods_number': self.uploaded_goods_numbers,
             'sold_goods_number': self.sold_goods_number,
             "total_star": self.stars_for_good*0.5 + self.stars_for_deliver*0.3 + self.stars_for_attitude*0.2,
@@ -132,7 +132,7 @@ class User(models.Model):
             'user_status': self.user_status,
             'user_identify': self.user_identify,
             'self_description': self.self_description,
-            'header_photo_url': signer.sign_object(info),
+            'header_photo_url': f"{file_url}{signer.sign_object(info)}",
             'uploaded_goods_number': self.uploaded_goods_numbers,
             'sold_goods_number': self.sold_goods_number,
             "total_start": self.stars_for_good * 0.5 + self.stars_for_deliver * 0.3 + self.stars_for_attitude * 0.2,
@@ -322,7 +322,7 @@ class Comment(models.Model):
 
 
 class CommentTask(models.Model):
-    class Level(models.IntegerChoices):
+    class TaskLevel(models.IntegerChoices):
         VERY_BAD = (1, '非常不满')
         BAD = (2, '不满')
         MIDDLE = (3, '一般')
@@ -334,7 +334,7 @@ class CommentTask(models.Model):
     comment_target = models.ForeignKey("user.User", on_delete=models.CASCADE, related_name='target_comment_task')
     comment_task = models.ForeignKey('task.Task', on_delete=models.CASCADE,
                                             related_name='comments_task')
-    comment_level = models.IntegerField(choices=Level.choices, null=False)
+    comment_level = models.IntegerField(choices=TaskLevel.choices)
     agree_number = models.IntegerField(default=0)
     disagree_number = models.IntegerField(default=0)
 

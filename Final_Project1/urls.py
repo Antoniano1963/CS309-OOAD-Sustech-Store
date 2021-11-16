@@ -29,6 +29,7 @@ urlpatterns = [
     url('api/transaction/', include('order.urls')),
     url('api/chat/', include('chat.urls')),
     url('api/search/', MysearchView()),
-    url('api/dialogue/', include('dialogue.urls'))
+    url('api/dialogue/', include('dialogue.urls')),
+    url('api/task/', include('task.urls'))
 ]
 urlpatterns += staticfiles_urlpatterns()

@@ -9,4 +9,5 @@ urlpatterns = [
     url('begin_websocket/', views.begin_websocket),
     url('dialogue_detail/', views.dialogue_detail),
     url('dialogue_list/', views.dialogue_list),
+    url('receive_img/', views.receive_img),
 ]

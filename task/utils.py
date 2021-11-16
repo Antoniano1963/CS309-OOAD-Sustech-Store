@@ -2,13 +2,13 @@ from ast import literal_eval
 from django.core.signing import TimestampSigner
 from django_redis import get_redis_connection
 
-def start_task_dialogue(sender, user, task):
+def start_task_dialogue(sender, user0, task):
     import user.models
     import task.models
     import dialogue.models
     new_dialogue = dialogue.models.Dialogue.objects.create(
-        dialogue_user=user,
-        dialogue_business=sender,
+        dialogue_user1=user0,
+        dialogue_user2=sender,
     )
     new_dialogue.save()
     conn = get_redis_connection('default')
@@ -19,9 +19,9 @@ def start_task_dialogue(sender, user, task):
     #     order_list_u = []
     # else:
     #     order_list_u = literal_eval(order_list_u)
-    # order_list_u.append(new_dialogue.id)
-    # order_list_b = conn.get("session_{}".format(new_dialogue.dialogue_business.id))
-    # if not order_list_b:
+    # order_list_u.append(new_dialssion_{}".format(new_dialogue.dialogue_business.id))
+    # if not order_list_b:ogue.id)
+    #     # order_list_b = conn.get("se
     #     order_list_b = []
     # else:
     #     order_list_b = conn(order_list_b)

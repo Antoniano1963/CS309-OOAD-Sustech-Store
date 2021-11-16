@@ -44,7 +44,8 @@ class ChatConsumer(WebsocketConsumer):
         user_id = self.user_id
         dialogue_id = text_data_json.get('dialogue_id', None)
         info = text_data_json.get('info', None)
-        if not all((user_id, dialogue_id, info)): #判断字段是否齐全
+        data_type = text_data_json.get('data_type', None)
+        if not all((user_id, dialogue_id, info, data_type)): #判断字段是否齐全
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
                 {
@@ -68,7 +69,7 @@ class ChatConsumer(WebsocketConsumer):
                     }
                 )
             else:
-                return_dict = add_info_to_dialogue(user_id, dialogue_id, info)
+                return_dict = add_info_to_dialogue(user_id, dialogue_id, info, data_type)
                 if not return_dict['status']:
                     async_to_sync(self.channel_layer.group_send)(
                         self.room_group_name,
@@ -90,9 +91,10 @@ class ChatConsumer(WebsocketConsumer):
                                         'message': '成功',
                                         'status': 1,
                                         'info': info,
-                                        'session_id': dialogue_id,
+                                        'dialogue_id': signer.sign_object(dialogue_id),
                                         'from_id': signer.sign_object(user_id),
                                         'to': signer.sign_object(target_id),
+                                        'data_type': data_type,
                                             },
                             }
                         )
@@ -109,7 +111,9 @@ class ChatConsumer(WebsocketConsumer):
                                     'status': 2,
                                     'info': info,
                                     'from': signer.sign_object(user_id),
-                                    'to': signer.sign_object(target_id)
+                                    'to': signer.sign_object(target_id),
+                                    'data_type': data_type,
+                                    'dialogue_id': signer.sign_object(dialogue_id),
                                 })
                         }
                     )

@@ -1,9 +1,13 @@
 import math
+import os
 
+import django.utils.timezone
+from PIL.Image import Image
 from django.http import JsonResponse
 from django_redis import get_redis_connection
 import user.models
 import dialogue.models
+from Final_Project1.settings import MEDIA_ROOT
 from utils import myemail_sender, random_utils
 from django.core.signing import TimestampSigner
 from Final_Project1.decotators.login_required import login_required
@@ -222,4 +226,45 @@ def begin_websocket(request):
             'status': '200',
             'message': '成功',
             'token': code
+        }, status=200)
+
+
+file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+@login_required()
+def receive_img(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    dialogue_id = request.POST.get('dialogue_id', None)
+    if not dialogue_id:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段不全',
+        }, status=200)
+    try:
+        image1 = request.FILES['image1']
+        current_dialogue = dialogue.models.Dialogue.objects.get(id=dialogue_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段不全',
+        }, status=200)
+    if current_user != current_dialogue.dialogue_user1 and current_user != current_dialogue.dialogue_user2:
+        return JsonResponse({
+            'status': '400',
+            'message': '不是你的对话',
+        }, status=200)
+    reopen_img1 = Image.open(image1)
+    reopen_img1.thumbnail((800, 600), Image.ANTIALIAS)
+    img_path = os.path.join(MEDIA_ROOT, 'dialogue_{0}/user_{1}_dia/time:_{2}_{3}'.format(
+        dialogue_id, current_user.id, django.utils.timezone.now(), 'dialogue_{}.png'.format(current_dialogue.image_number)))
+    reopen_img1.save(img_path, format='PNG')
+    info = dict({
+        'dia_id': current_dialogue.id,
+        'date': str(django.utils.timezone.now()),
+        'path': img_path
+    })
+    signer = TimestampSigner()
+    return JsonResponse({
+            'status': '200',
+            'message': '成功',
+            'dia_img_url': f"{file_url}{signer.sign_object(info)}",
         }, status=200)

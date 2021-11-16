@@ -149,16 +149,60 @@ def add_favorite_merchandise_handler(request):
         }, status=200)
     try:
         favorite_mer_id = signer.unsign_object(favorite_mer_id)
-        favorite_mer = commodity.models.Merchandise.objects.get(favorite_mer_id)
+        favorite_mer = commodity.models.Merchandise.objects.get(id=favorite_mer_id)
     except:
         return JsonResponse({
             'status': '300',
             'message': 'id解码异常'
         }, status=200)
     try:
+        if favorite_mer.id in current_user.favorite_merchandise:
+            return JsonResponse({
+                'status': '300',
+                'message': '不能重复收藏'
+            }, status=200)
         current_user.favorite_merchandise.append(favorite_mer_id)
         current_user.save()
         favorite_mer.who_favourite.append(current_user.id)
+        favorite_mer.save()
+        return JsonResponse({
+            'status': '200',
+            'message': '收藏成功'
+        }, status=200)
+    except:
+        return JsonResponse({
+            'status': '300',
+            'message': 'id添加异常'
+        }, status=200)
+
+
+@login_required()
+def favorite_merchandise_cancel_handler(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    signer = TimestampSigner()
+    favorite_mer_id = request.POST.get('mer_id', None)
+    if not favorite_mer_id:
+        return JsonResponse({
+            'status': '300',
+            'message': 'POST字段不全'
+        }, status=200)
+    try:
+        favorite_mer_id = signer.unsign_object(favorite_mer_id)
+        favorite_mer = commodity.models.Merchandise.objects.get(id=favorite_mer_id)
+    except:
+        return JsonResponse({
+            'status': '300',
+            'message': 'id解码异常'
+        }, status=200)
+    try:
+        if favorite_mer.id not in current_user.favorite_merchandise:
+            return JsonResponse({
+                'status': '300',
+                'message': '不在收藏列表中'
+            }, status=200)
+        current_user.favorite_merchandise.remove(favorite_mer.id)
+        current_user.save()
+        favorite_mer.who_favourite.remove(current_user.id)
         favorite_mer.save()
         return JsonResponse({
             'status': '200',
@@ -184,12 +228,6 @@ def add_favorite_business_handler(request):
     try:
         signer = TimestampSigner()
         favorite_bus_id = signer.unsign_object(favorite_bus_id)
-        if int(favorite_bus_id) == current_user.id:
-            return JsonResponse({
-            'status': '400',
-            'message': '自己不能收藏自己'
-        }, status=200)
-
         mer_upload_user = user.models.User.objects.get(id=favorite_bus_id)
     except:
         return JsonResponse({
@@ -197,9 +235,54 @@ def add_favorite_business_handler(request):
             'message': 'id解码异常'
         }, status=200)
     # try:
+    if mer_upload_user.id in current_user.favorite_sellers:
+        return JsonResponse({
+            'status': '300',
+            'message': '不能重复收藏'
+        }, status=200)
     current_user.favorite_sellers.append(mer_upload_user.id)
     current_user.save()
     mer_upload_user.as_favorite_business_number += 1
+    mer_upload_user.save()
+    return JsonResponse({
+        'status': '200',
+        'message': '收藏成功'
+    }, status=200)
+    # except:
+    #     return JsonResponse({
+    #         'status': '300',
+    #         'message': 'id添加异常'
+    #     }, status=200)
+
+
+@login_required()
+def favorite_business_cancel_handler(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    signer = TimestampSigner()
+    favorite_bus_id = request.POST.get('mer_upload_user_id', None)
+    if not favorite_bus_id:
+        return JsonResponse({
+            'status': '300',
+            'message': 'POST字段不全'
+        }, status=200)
+    try:
+        signer = TimestampSigner()
+        favorite_bus_id = signer.unsign_object(favorite_bus_id)
+        mer_upload_user = user.models.User.objects.get(id=favorite_bus_id)
+    except:
+        return JsonResponse({
+            'status': '300',
+            'message': 'id解码异常'
+        }, status=200)
+    # try:
+    if mer_upload_user.id not in current_user.favorite_sellers:
+        return JsonResponse({
+            'status': '300',
+            'message': '不在收藏列表'
+        }, status=200)
+    current_user.favorite_sellers.remove(mer_upload_user.id)
+    current_user.save()
+    mer_upload_user.as_favorite_business_number -= 1
     mer_upload_user.save()
     return JsonResponse({
         'status': '200',
@@ -229,7 +312,7 @@ def search_by_class_label_all(request: HttpRequest):
             'message': '字段值错误'
         }, status=200)
     if fineness_id:
-        if fineness_id not in fineness_list:
+        if int(fineness_id) not in fineness_list:
             return JsonResponse({
                 'status': '400',
                 'message': '字段值错误'

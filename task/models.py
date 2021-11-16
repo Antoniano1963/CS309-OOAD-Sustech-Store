@@ -5,6 +5,25 @@ import django.utils.timezone
 
 # Create your models here.
 
+
+class TaskManager(models.Manager):
+    def get_tasks_by_class(self, task_type=None, sort='default'):
+        '''根据商品类型id查询商品信息'''
+        if sort == 'new':
+            order_by = ('-upload_date',)
+        elif sort == 'price':
+            order_by = ('price',)
+        else:
+            order_by = ('-pk',)  # 按照primary key降序排列。
+
+        # 查询数据
+        if task_type:
+            task_Li = self.filter(task_status__exact=7).filter(task_type__exact=task_type).order_by(*order_by)
+        else:
+            task_Li = self.filter(task_status__exact=7).order_by(*order_by)
+        return task_Li
+
+
 class Task(models.Model):
 
     def user_directory_path(instance, filename):
@@ -52,21 +71,24 @@ class Task(models.Model):
     dialogue_between_up_sender = models.ForeignKey('dialogue.Dialogue', on_delete=models.CASCADE, null=True, related_name='dialogue_task_up')
     dialogue_between_re_sender = models.ForeignKey('dialogue.Dialogue', on_delete=models.CASCADE, null=True, related_name='dialogue_task_re')
     task_status = models.IntegerField(choices=TaskStatus.choices, default=7)
+    objects = TaskManager()
 
     def get_simple_info(self):
         signer = TimestampSigner()
         return dict({
+            'task_id': signer.sign_object(self.id),
             'name': self.name,
             'task_type': self.task_type,
-            'relation_trasaction_id': signer.sign(self.relation_transaction.id),
+            'relation_trasaction_id': signer.sign_object(self.relation_transaction.id) if self.relation_transaction else "No relation transaction",
             'description': self.description,
-            'send_user': self.sender_user.get_base_info(),
-            'receive_user': self.receive_user.get_base_info(),
+            'send_user': self.sender_user.get_base_info() if self.sender_user else "No sender",
+            'receive_user': self.receive_user.get_base_info() if self.receive_user else "No receiver",
             'upload_user': self.upload_user.get_base_info(),
-            'dialogue_id': self.dialogue_between_up_sender.id,
+            'dialogue_id': signer.sign_object(self.dialogue_between_up_sender.id) if self.dialogue_between_up_sender else "No dialogue",
             'price': self.price,
-            'sender_addr': self.sender_addr.get_basic_info(),
-            'receive_addr': self.receive_addr.get_basic_info(),
+            'sender_addr': self.sender_addr.get_basic_info() if self.sender_addr else "No sender addr",
+            'receive_addr': self.receive_addr.get_basic_info() if self.receive_addr else "No receive addr",
             'receive_time': str(self.receive_time),
-            'ddl_time': str(self.ddl_time)
+            'ddl_time': str(self.ddl_time),
+            'task_status': self.task_status,
         })

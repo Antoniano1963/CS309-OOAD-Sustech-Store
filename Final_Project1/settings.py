@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'commodity',
     'dialogue',
     'order',
-    'task'
+    'task',
+    # 'cachalot',
 ]
 
 MIDDLEWARE = [
@@ -146,12 +147,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'imageStore')
 # 配置浏览器访问文件的地址：http://127.0.0.1:8000/media/...
 MEDIA_URL = '/media/'
 
-if DEBUG:
-    STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, "static"),
-    ]
-else:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 
 CHANNEL_LAYERS = {
@@ -212,3 +209,6 @@ HAYSTACK_CONNECTIONS = {
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 6 # 指定搜索结果每页的条数
+
+# CACHALOT_ENABLED = True
+# CACHALOT_CACHE_RANDOM = True

@@ -9,7 +9,7 @@ from django_redis import get_redis_connection
 from redis import Redis
 from celery import Celery
 from .settings import EMAIL_FROM
-
+from django.db import transaction
 import django.utils.timezone
 
 # set the default Django settings module for the 'celery' program.
@@ -37,7 +37,7 @@ def setup_periodic_tasks(sender, **kwargs):
 
 
 @app.task(name = 'send_email', time_limit=15)
-def send_active_email(code, username, email, subject='0.0', type=2):
+def send_active_email(code, username, email, subject='0.0', type=2, url = None):
     '''发送激活邮件'''
     subject = '0.0' # 标题
     message = ''
@@ -45,11 +45,19 @@ def send_active_email(code, username, email, subject='0.0', type=2):
     receiver = [email] # 收件人列表
     html_message1 = '<div>Code is {}</div>'.format(code)
     html_message2 = '<div>通知消息为 is {}</div>'.format(code)
-    html_message = html_message1 if type ==1 else html_message2
+    html_message3 = '<div>忘记密码的邮件 Code is {}</div>'.format(code)
+    # html_message = html_message1 if type ==1 else html_message2
+    if type == 1:
+        html_message = html_message1
+    elif type == 2:
+        html_message = html_message2
+    else:
+        html_message =html_message3
     print(code)
     send_mail(subject, message, sender, receiver, html_message=html_message)
 
 
+@transaction.atomic
 @app.task(name = 'cancel_non_pay_transaction')
 def cancel_non_pay_tra():
     '''发送激活邮件'''
@@ -57,8 +65,17 @@ def cancel_non_pay_tra():
     unpay_tra_list = Transaction.objects.filter(status=1)
     for i in unpay_tra_list.all():
         if (django.utils.timezone.now() - i.create_time).seconds > 3600:
-            i.status = 0
-            i.delete()
+            sid = transaction.savepoint()
+            try:
+                i.status = 0
+                current_mer = i.transaction_merchandise
+                current_mer.status = 1
+                current_mer.save()
+                i.delete()
+            except:
+                transaction.savepoint_rollback(sid)
+            transaction.savepoint_commit(sid)
+
 
 @app.task(name = 'create_user_commodity_matrix')
 def create_matrix():

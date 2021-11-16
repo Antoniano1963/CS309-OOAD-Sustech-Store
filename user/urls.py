@@ -43,5 +43,13 @@ urlpatterns = [
     url('change_pay_password/', views.change_pay_password),
     url('get_all_comments/', views.get_all_comments),
     url('user_page/', views.user_page),
+    url('wait_payment_fuc_seller/', views.wait_payment_fuc_seller),
+    url('wait_deliver_fuc_seller/', views.wait_deliver_fuc_seller),
+    url('wait_receiving_fuc_seller/', views.wait_receiving_fuc_seller),
+    url('wait_comment_fuc_seller/', views.wait_comment_fuc_seller),
+    url('success_fuc_seller/', views.success_fuc_seller),
+    url('get_problem_list/', views.get_problem_list),
+    url('delete_address/', views.delete_address),
+    url('delete_commodity/', views.delete_commodity),
 
 ]
