@@ -44,10 +44,10 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'user',
     'chat',
-    'commodity',
     'dialogue',
     'order',
     'task',
+    'commodity.apps.CommodityConfig',
     # 'cachalot',
 ]
 

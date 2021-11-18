@@ -14,7 +14,7 @@ def login_required(status=0, callback=None, method='POST'):
                     return JsonResponse({
                         'status': '404',
                         'message': 'User not login '
-                    }, status=200)
+                    }, status=407)
                 try:
                     user_id = request.session['user_id']
                 except:
@@ -28,7 +28,7 @@ def login_required(status=0, callback=None, method='POST'):
                         return JsonResponse({
                             'status': '500',
                             'message': '用户无权访问'
-                        }, status=200)
+                        }, status=407)
                 except:
                     return JsonResponse({
                         'status': '300',

@@ -1,14 +1,16 @@
 from ast import literal_eval
 from django.core.signing import TimestampSigner
 from django_redis import get_redis_connection
+import task.models
 
-def start_task_dialogue(sender, user0, task):
+def start_task_dialogue(sender, user0, task:task.models.Task.objects):
     import user.models
     import task.models
     import dialogue.models
     new_dialogue = dialogue.models.Dialogue.objects.create(
         dialogue_user1=user0,
         dialogue_user2=sender,
+        dialogue_type=2
     )
     new_dialogue.save()
     conn = get_redis_connection('default')

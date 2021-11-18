@@ -1,7 +1,7 @@
 from django.core.signing import TimestampSigner
 from django.db import models
 import django.utils.timezone
-
+import user.models
 
 # Create your models here.
 
@@ -68,13 +68,20 @@ class Task(models.Model):
     sender_addr = models.ForeignKey('user.Address', on_delete=models.CASCADE, related_name="addr_mer_10")
     receive_user = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name='user_receive_task', null=True)
     receive_addr = models.ForeignKey('user.Address', on_delete=models.CASCADE, related_name="addr_mer_20")
-    dialogue_between_up_sender = models.ForeignKey('dialogue.Dialogue', on_delete=models.CASCADE, null=True, related_name='dialogue_task_up')
-    dialogue_between_re_sender = models.ForeignKey('dialogue.Dialogue', on_delete=models.CASCADE, null=True, related_name='dialogue_task_re')
+    dialogue_between_up_sender = models.ForeignKey('dialogue.Dialogue', on_delete=models.SET_NULL, null=True, related_name='dialogue_task_up')
+    dialogue_between_re_sender = models.ForeignKey('dialogue.Dialogue', on_delete=models.SET_NULL, null=True, related_name='dialogue_task_re')
     task_status = models.IntegerField(choices=TaskStatus.choices, default=7)
+    change_time = models.DateTimeField(auto_now_add=True)
     objects = TaskManager()
 
     def get_simple_info(self):
         signer = TimestampSigner()
+        if self.task_status == 5:
+            current_comment = user.models.CommentTask.objects.filter(comment_task=self)
+            if current_comment:
+                current_comment = current_comment.all()[0]
+            else:
+                current_comment = None
         return dict({
             'task_id': signer.sign_object(self.id),
             'name': self.name,
@@ -84,11 +91,29 @@ class Task(models.Model):
             'send_user': self.sender_user.get_base_info() if self.sender_user else "No sender",
             'receive_user': self.receive_user.get_base_info() if self.receive_user else "No receiver",
             'upload_user': self.upload_user.get_base_info(),
-            'dialogue_id': signer.sign_object(self.dialogue_between_up_sender.id) if self.dialogue_between_up_sender else "No dialogue",
+            'dialogue_id_up_se': signer.sign_object(self.dialogue_between_up_sender.id) if self.dialogue_between_up_sender else "No dialogue",
+            'dialogue_id_re_se': signer.sign_object(
+                self.dialogue_between_re_sender.id) if self.dialogue_between_re_sender else "No dialogue",
             'price': self.price,
             'sender_addr': self.sender_addr.get_basic_info() if self.sender_addr else "No sender addr",
             'receive_addr': self.receive_addr.get_basic_info() if self.receive_addr else "No receive addr",
             'receive_time': str(self.receive_time),
             'ddl_time': str(self.ddl_time),
+            'task_status': self.task_status,
+            'task_comment': current_comment.get_base_info() if self.task_status == 5 else None
+        })
+
+    def get_base_info(self):
+        signer = TimestampSigner()
+        return dict({
+            'task_id': signer.sign_object(self.id),
+            'name': self.name,
+            'task_type': self.task_type,
+            'relation_trasaction_id': signer.sign_object(self.relation_transaction.id) if self.relation_transaction else "No relation transaction",
+            'description': self.description,
+            'upload_user': self.upload_user.get_base_info(),
+            'price': self.price,
+            'sender_addr': self.sender_addr.get_basic_info() if self.sender_addr else "No sender addr",
+            'receive_addr': self.receive_addr.get_basic_info() if self.receive_addr else "No receive addr",
             'task_status': self.task_status,
         })

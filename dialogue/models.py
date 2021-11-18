@@ -22,7 +22,7 @@ class Dialogue(models.Model):
     user1_wait_message_number = models.IntegerField(default=0)
     user2_wait_message_number = models.IntegerField(default=0)
     dialogue_type = models.IntegerField(choices=DialogueType.choices, default=1)
-    image_number = models.ImageField(default=0)
+    image_number = models.IntegerField(default=0)
     #可以通过wait_number来知道那些是新发的吧
     dialogue_info = ArrayField(
         base_field=models.JSONField(),

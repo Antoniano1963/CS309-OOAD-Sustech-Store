@@ -9,3 +9,4 @@ from . import models
 admin.site.register(models.User)
 admin.site.register(models.Address)
 admin.site.register(models.Comment)
+admin.site.register(models.CommentTask)

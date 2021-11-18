@@ -35,6 +35,17 @@ def hash_code(s, salt='mysite'):# 加点盐
 user_email
 password
 '''
+
+def has_login_query(request):
+    if request.method == 'POST':
+        if request.session.get('is_login', False):
+            return JsonResponse({
+                'status': '200',
+                'message': '已登录'
+            })
+    return HttpResponse(status=407)
+
+
 def login_fuc(request):
     if request.method == 'POST':
         if request.session.get('is_login', False):
@@ -169,10 +180,6 @@ def new_register_email(request):
                 'message': 'User already login {}'.format(request.session.get('user_name', 'unknown_name'))
             })
         if request.POST.get("status") == '0':
-            user_email = request.POST.get('user_email')
-            code = random_utils.random_str(6, 'upper_str')
-            send_active_email.delay(code, 'a', user_email, type=1)
-            request.session['code'] = code
             has_send = conn.get(key)
             if has_send:
                 return JsonResponse({
@@ -181,6 +188,15 @@ def new_register_email(request):
                 })
             else:
                 conn.set(key, 1, 50)
+            user_email = request.POST.get('user_email')
+            if not user_email:
+                return JsonResponse({
+                    'status': '400',
+                    'message': 'POST字段不全'
+                }, status=200)
+            code = random_utils.random_str(6, 'upper_str')
+            send_active_email.delay(code, 'a', user_email, type=1)
+            request.session['code'] = code
             return JsonResponse({
                     'status': '200',
                     'message': '邮件发送成功'
@@ -238,19 +254,6 @@ def mobile_login(request):
     return HttpResponse(status=500)
 
 
-'''
-mer_name
-mer_description
-mer_price
-class1_id
-class2_id
-fineness_Id
-dliver_price
-send_address_id
-image1
-image2
-image3
-'''
 @login_required()
 def upload_commodity(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
@@ -372,6 +375,7 @@ def delete_commodity(request):
     sid = transaction.savepoint()
     try:
         current_mer.status = 0
+        current_mer.save()
     except:
         transaction.savepoint_rollback(sid)
         return JsonResponse({
@@ -389,11 +393,19 @@ def delete_commodity(request):
 @login_required()
 def wait_payment_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
     all_user_transaction_wait_payment = Transaction.objects.filter(
         transaction_receiver=current_user).filter(status__exact=1)
     transaction_list = []
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
     for i in all_user_transaction_wait_payment.all():
         transaction_list.append(i.get_simple_overview())
     if all_user_transaction_wait_payment.count() > end_position:
@@ -685,6 +697,14 @@ def all_user_selling_merchandise(request):
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
     return_list = get_user_selling(current_user.id)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
     merchandises_count = len(return_list)
     if merchandises_count > end_position:
         has_next = True
@@ -711,6 +731,14 @@ def all_user_upload_merchandise(request):
     selling_List = commodity.models.Merchandise.objects.filter(
         upload_user_id__exact=current_user.id).filter(status__exact=1)
     return_list = []
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
     for i in selling_List.all():
         return_list.append(i.get_simple_info())
     merchandises_count = len(return_list)
@@ -745,8 +773,16 @@ def all_user_favorite_merchandise(request):
             'message': '数据库列表id错误'
         }, status=200)
 
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
     return_len = len(favorite_merchandise_data_list)
     if return_len > end_position:
         has_next = True
@@ -780,9 +816,16 @@ def all_user_favorite_business(request):
             'message': '数据库列表id错误'
         }, status=200)
 
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
-
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
     return_len = len(favorite_business_data_list)
     if return_len > end_position:
         has_next = True
@@ -886,6 +929,8 @@ def get_address_list(request:HttpRequest):
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
     try:
+        start_position = int(start_position)
+        end_position = int(end_position)
         addr_list = user.models.Address.objects.filter(user=current_user).all()
         return_list = []
         for i in addr_list:
@@ -1017,7 +1062,7 @@ def modify_self_info(request:HttpRequest):
         return JsonResponse({
             'status': '400',
             'message': '更改失败'
-        }, status=407)
+        }, status=200)
 
 
 @login_required(status=1)
@@ -1033,7 +1078,7 @@ def get_user_details(request:HttpRequest):
         return JsonResponse({
             'status': '400',
             'message': '查询失败'
-        }, status=407)
+        }, status=200)
 
 
 @transaction.atomic
@@ -1093,6 +1138,18 @@ def upload_QR_Code(request:HttpRequest):
     return JsonResponse({
         'status': '200',
         'message': '激活成功'
+    }, status=200)
+
+
+@login_required(status=2)
+def get_QR_Code(request:HttpRequest):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    signer = TimestampSigner()
+    QR_code_url = f"{file_url}{signer.sign_object(current_user.get_QRCode_info())}",
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'QR_code_url':QR_code_url,
     }, status=200)
 
 
@@ -1275,12 +1332,20 @@ def recharge(request):
 @login_required()
 def get_notification_list(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    recommend_list = current_user.notice_info_unread
+    notification_list = current_user.notice_info_unread
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
-    end_position = max(len(recommend_list) + 10, end_position)
+    end_position = max(len(notification_list) + 10, end_position)
     return_list = []
-    for rec in recommend_list:
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
+    for rec in notification_list:
         return_list.append(rec)
         current_user.notice_info.append(rec)
     try:
@@ -1293,11 +1358,11 @@ def get_notification_list(request):
     notice_info_list = current_user.notice_info
     notice_info_list.sort(key=lambda x: x["date"])
     notice_info_list.reverse()
-    recommend_list.reverse()
+    notification_list.reverse()
     return JsonResponse({
         'status': '200',
         'message': '查询成功',
-        'recommend_list': recommend_list,
+        'notification_list': notification_list,
         'notice_list': notice_info_list[start_position:end_position],
     }, status=200)
 
@@ -1381,6 +1446,14 @@ def get_all_comments(request):
         }, status=200)
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'position异常',
+        }, status=200)
     comments_list = user.models.Comment.objects.filter(comment_target__id__exact=target_user_id).all()
     return_list = []
     for com in comments_list:
@@ -1462,7 +1535,7 @@ def get_problem_list(request):
     return JsonResponse({
         'status': '200',
         'message': '成功',
-        'return_List': return_list,
+        'return_List': return_list[start_position:end_position],
         'has_next': has_next
     }, status=200)
 
@@ -1471,47 +1544,162 @@ def forget_password_email(request):
     if request.method == 'POST':
         key = 'ip_{}_send_forget_email'.format(request.META['REMOTE_ADDR'])
         conn = get_redis_connection('default')
-        if request.session.get('is_login', False):
-            return JsonResponse({
-                'status': '300',
-                'message': 'User already login {}'.format(request.session.get('user_name', 'unknown_name'))
-            })
-        user_email = request.POST.get('user_email')
-        code = random_utils.random_str(6, 'upper_str')
-        send_active_email.delay(code, 'a', user_email, type=3)
-        request.session['forget_code'] = code
-        request.session['forget_email'] = user_email
         has_send = conn.get(key)
         if has_send:
             return JsonResponse({
                 'status': '407',
                 'message': '60s内重复发送邮件'
-            })
+            }, status=200)
         else:
             conn.set(key, 1, 50)
+        if request.session.get('is_login', False):
+            return JsonResponse({
+                'status': '300',
+                'message': 'User already login {}'.format(request.session.get('user_name', 'unknown_name'))
+            }, status=200)
+        user_email = request.POST.get('user_email', None)
+        if not user_email:
+            return JsonResponse({
+                'status': '407',
+                'message': 'post字段不全'
+            }, status=200)
+        code = random_utils.random_str(6, 'upper_str')
+        send_active_email.delay(code, 'a', user_email, type=3)
+        request.session['forget_code'] = code
+        request.session['forget_email'] = user_email
         return JsonResponse({
             'status': '200',
             'message': '邮件发送成功'
-        })
+        }, status=200)
     return HttpResponse(status=500)
 
 
-def forget_pasword(request):
+def forget_password(request):
     if request.method == 'POST':
         code = request.session['forget_code']
         post_code = request.POST.get('post_code', None)
+        new_password = request.POST.get('new_password', None)
+        if not all ((new_password, post_code)):
+            return JsonResponse({
+                'status': '400',
+                'message': 'POST字段不全'
+            }, status=200)
         if code != post_code:
             return JsonResponse({
                 'status': '400',
                 'message': 'code错误'
-            })
-        new_password = request.POST.get('new_password', None)
+            }, status=200)
+
         forget_email = request.session['forget_email']
         current_user = user.models.User.objects.filter(email__exact=forget_email)
         if current_user:
             current_user = current_user.all()[0]
         current_user.password = hash_code(new_password)
+        current_user.save()
+        return JsonResponse({
+            'status': '200',
+            'message': '成功',
+        }, status=200)
     return HttpResponse(status=500)
 
 
+@login_required(status=1)
+def forget_pay_password_email(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    key = 'ip_{}_send_forget_pay_password_email'.format(request.META['REMOTE_ADDR'])
+    conn = get_redis_connection('default')
+    has_send = conn.get(key)
+    if has_send:
+        return JsonResponse({
+            'status': '407',
+            'message': '60s内重复发送邮件'
+        }, status=200)
+    else:
+        conn.set(key, 1, 50)
+    user_email = current_user.email
+    code = random_utils.random_str(6, 'upper_str')
+    send_active_email.delay(code, 'a', user_email, type=3)
+    request.session['forget_code'] = code
+    request.session['forget_pay_email'] = user_email
+    return JsonResponse({
+        'status': '200',
+        'message': '邮件发送成功'
+    }, status=200)
+
+
+@login_required(status=1)
+def forget_pay_password(request):
+    if request.method == 'POST':
+        code = request.session['forget_code']
+        post_code = request.POST.get('post_code', None)
+        new_password = request.POST.get('new_password', None)
+        if not all((new_password, post_code)):
+            return JsonResponse({
+                'status': '400',
+                'message': 'POST字段不全'
+            }, status=200)
+        if code != post_code:
+            return JsonResponse({
+                'status': '400',
+                'message': 'code错误'
+            }, status=200)
+        forget_email = request.session['forget_pay_email']
+        current_user = user.models.User.objects.filter(email__exact=forget_email)
+        if current_user:
+            current_user = current_user.all()[0]
+        current_user.pay_password = hash_code(new_password)
+        current_user.save()
+        return JsonResponse({
+            'status': '200',
+            'message': '成功',
+        }, status=200)
+    return HttpResponse(status=500)
+
+
+
+
+
+@transaction.atomic
+@login_required()
+def commit_transaction_QR_code_commit_receive(request:HttpRequest):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    current_tra_id = request.POST.get('tra_id', None)
+    if not current_tra_id:
+        return JsonResponse({
+            'status': '200',
+            'message': 'POST字段不全',
+        }, status=200)
+    signer = TimestampSigner()
+    try:
+        current_tra_id = signer.unsign_object(current_tra_id)
+        current_tra = Transaction.objects.get(id=current_tra_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '订单异常',
+        }, status=200)
+    if current_tra.status != 7:
+        return JsonResponse({
+            'status': '400',
+            'message': '订单异常',
+        }, status=200)
+    sid = transaction.savepoint()
+    try:
+        current_tra.transaction_merchandise.status = 2
+        current_tra.status = 2
+        current_tra.comfirm_time = django.utils.timezone.now()
+        current_tra.save()
+    except Exception as e:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '服务器错误',
+        }, status=200)
+    transaction.savepoint_commit(sid)
+    send_notice(current_tra.transaction_receiver.id,
+                '商品{}被卖家确认，即将发货'.format(current_tra.transaction_merchandise.name))
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+    }, status=200)
 

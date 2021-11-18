@@ -16,4 +16,9 @@ urlpatterns = [
     url('comment_transaction/', views.comment_transaction),
     url('transaction_has_problem/', views.transaction_has_problem),
     url('cancel_transaction/', views.cancel_transaction),
+    # url('commit_transaction_QR_code_start/', views.commit_transaction_QR_code_start),
+    # url('commit_transaction_QR_code_ready/', views.commit_transaction_QR_code_ready),
+    url('commit_transaction_QR_code_commit/', views.commit_transaction_QR_code_commit),
+    # url('commit_transaction_QR_code_commit_receive/', views.commit_transaction_QR_code_commit_receive),
+    url('commit_transaction_face/', views.commit_transaction_face),
 ]

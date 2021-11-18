@@ -2,6 +2,7 @@ import json
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from chat.utils import *
+import django.utils.timezone
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -26,6 +27,15 @@ class ChatConsumer(WebsocketConsumer):
                 self.channel_name
             )
             self.accept()
+            conn = get_redis_connection('default')
+            key = 'online_num_{}'.format(django.utils.timezone.now().strftime('%Y-%m-%d'))
+            online_number = conn.get(key)
+            if online_number:
+                online_number = int(online_number)
+                online_number += 1
+            else:
+                online_number = 0
+            conn.set(key, online_number)
 
     def disconnect(self, close_code):
         # Leave room group

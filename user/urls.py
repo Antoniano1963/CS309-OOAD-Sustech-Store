@@ -37,7 +37,7 @@ urlpatterns = [
     url('add_cart/', views.add_cart),
     url('cart_show/', views.cart_show),
     url('cart_del/', views.cart_del),
-    url('get_recommend_list/', views.get_notification_list),
+    url('get_recommend_list/', views.get_recommend_list),
     url('upload_QR_code/', views.upload_QR_Code),
     url('change_password/', views.change_password),
     url('change_pay_password/', views.change_pay_password),
@@ -51,5 +51,11 @@ urlpatterns = [
     url('get_problem_list/', views.get_problem_list),
     url('delete_address/', views.delete_address),
     url('delete_commodity/', views.delete_commodity),
+    url('get_notification_list/', views.get_notification_list),
+    url('get_QR_Code/', views.get_QR_Code),
+    url('forget_password/', views.forget_password),
+    url('forget_pay_password/', views.forget_pay_password),
+    url('forget_pay_password_email/', views.forget_pay_password_email),
+    url('forget_password_email/', views.forget_password_email),
 
 ]

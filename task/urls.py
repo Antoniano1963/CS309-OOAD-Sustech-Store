@@ -26,4 +26,8 @@ urlpatterns = [
     url('task_wait_comment_list_sender/', views.task_wait_comment_list_sender),
     url('task_wait_confirm_success_list_sender/', views.task_wait_confirm_success_list_sender),
     url('task_all_relative_list_receive/', views.task_all_relative_list_receive),
+    url('get_recommend_tasks/', views.get_recommend_tasks),
+    url('get_all_task_list_up/', views.get_all_task_list_up),
+    url('get_all_task_list_tasker/', views.get_all_task_list_tasker),
+    url('transaction_relation_task/', views.transaction_relation_task),
 ]

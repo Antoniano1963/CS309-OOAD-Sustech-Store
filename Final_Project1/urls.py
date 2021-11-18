@@ -30,6 +30,7 @@ urlpatterns = [
     url('api/chat/', include('chat.urls')),
     url('api/search/', MysearchView()),
     url('api/dialogue/', include('dialogue.urls')),
-    url('api/task/', include('task.urls'))
+    url('api/task/', include('task.urls')),
+    url('api/supermanager/', include('supermanager.urls')),
 ]
 urlpatterns += staticfiles_urlpatterns()

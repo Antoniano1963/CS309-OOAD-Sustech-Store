@@ -20,6 +20,12 @@ class MerchandiseManager(models.Manager):
             order_by = ('-favourite_number',)
         elif sort == 'price':
             order_by = ('price',)
+        elif sort == '-new':
+            order_by = ('upload_date',)
+        elif sort == '-hot':
+            order_by = ('favourite_number',)
+        elif sort == '-price':
+            order_by = ('-price',)
         else:
             order_by = ('-pk',)  # 按照primary key降序排列。
 
@@ -39,6 +45,12 @@ class MerchandiseManager(models.Manager):
             order_by = ('-favourite_number',)
         elif sort == 'price':
             order_by = ('price',)
+        elif sort == '-new':
+            order_by = ('upload_date',)
+        elif sort == '-hot':
+            order_by = ('favourite_number',)
+        elif sort == '-price':
+            order_by = ('-price',)
         else:
             order_by = ('-pk',)  # 按照primary key降序排列。
 
@@ -223,7 +235,7 @@ class ClassLevel2(models.Model):
         class_l2_1 = (1, '运动服')
         class_l2_2 = (2, '运动鞋')
         class_l2_3 = (3, '五金用品')
-        class_l2_4 = (4,'办公用品')
+        class_l2_4 = (4, '办公用品')
         class_l2_5 = (5, '办公设备')
         class_l2_6 = (6, '大家电')
         class_l2_7 = (7, '厨房电器')

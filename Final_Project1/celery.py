@@ -8,6 +8,8 @@ from django.utils import timezone
 from django_redis import get_redis_connection
 from redis import Redis
 from celery import Celery
+
+
 from .settings import EMAIL_FROM
 from django.db import transaction
 import django.utils.timezone
@@ -29,15 +31,43 @@ app.autodiscover_tasks()
 app.now = timezone.now
 
 
-@app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(60.0, cancel_non_pay_tra.s(), name='cancel non-pay transactions every 60 seconds')
-    sender.add_periodic_task(60.0, create_matrix.s(), name='create recommend matrix every 60 seconds')
-    # sender.add_periodic_task(10.0, test_fuc2.s(), name='sync statistic_info every 10 seconds')
+
+app.conf.beat_schedule = {
+    'add-every-30-seconds': {
+        'task': 'cancel_over_ddl_task',
+        'schedule': 60.0,
+        'args': ()
+    },
+    'add-every-30-seconds2': {
+        'task': 'cancel_non_pay_tra',
+        'schedule': 60.0,
+        'args': ()
+    },
+    'add-every-30-seconds3': {
+        'task': 'create_user_commodity_matrix',
+        'schedule': 120.0,
+        'args': ()
+    },
+    'add-every-30-seconds4': {
+        'task': 'create_recommend_list_by_browsing',
+        'schedule': 60.0,
+        'args': ()
+    },
+}
+app.conf.timezone = 'UTC'
+
+# @app.on_after_configure.connect
+# def setup_periodic_tasks(sender, **kwargs):
+#     sender.add_periodic_task(60.0, cancel_non_pay_tra.s(), name='cancel non-pay transactions every 60 seconds')
+#     sender.add_periodic_task(60.0, create_user_commodity_matrix.s(), name='create recommend matrix every 60 seconds')
+#     sender.add_periodic_task(60.0, cancel_over_ddl_task.s(), name='cancel over ddl tasks every 60 seconds')
+#     sender.add_periodic_task(60.0, create_recommend_list_by_browsing.s(), name='create recommend list by browsing number every 60 second')
+
+
 
 
 @app.task(name = 'send_email', time_limit=15)
-def send_active_email(code, username, email, subject='0.0', type=2, url = None):
+def send_active_email(code, username, email, subject='0.0', type=2, url=None):
     '''发送激活邮件'''
     subject = '0.0' # 标题
     message = ''
@@ -52,13 +82,15 @@ def send_active_email(code, username, email, subject='0.0', type=2, url = None):
     elif type == 2:
         html_message = html_message2
     else:
-        html_message =html_message3
+        html_message = html_message3
     print(code)
+    print(html_message3)
+    print(receiver)
     send_mail(subject, message, sender, receiver, html_message=html_message)
 
 
 @transaction.atomic
-@app.task(name = 'cancel_non_pay_transaction')
+@app.task(name = 'cancel_non_pay_tra')
 def cancel_non_pay_tra():
     '''发送激活邮件'''
     from order.models import Transaction
@@ -77,8 +109,34 @@ def cancel_non_pay_tra():
             transaction.savepoint_commit(sid)
 
 
+@transaction.atomic
+@app.task(name = 'cancel_over_ddl_task')
+def cancel_over_ddl_task():
+    from chat.utils import send_notice
+    '''发送激活邮件'''
+    from task.models import Task
+    notasker_list = Task.objects.filter(task_status=7)
+    for i in notasker_list.all():
+        if django.utils.timezone.now() > i.ddl_time:
+            sid = transaction.savepoint()
+            try:
+                current_uploader = i.upload_user
+                current_uploader.money += i.price
+                current_uploader.save()
+                if i.task_type == 1:
+                    current_tra = i.relation_transaction
+                    current_tra.has_task = False
+                    current_tra.save()
+                send_notice(i.upload_user.id,
+                            '任务{}超过DDL时间{}被删除了'.format(i.name, i.ddl_time.strftime("%Y-%m-%d")))
+                i.delete()
+            except:
+                transaction.savepoint_rollback(sid)
+            transaction.savepoint_commit(sid)
+
+
 @app.task(name = 'create_user_commodity_matrix')
-def create_matrix():
+def create_user_commodity_matrix():
     import user.models
     import commodity.models
     redis_connect = Redis(host='localhost', port=6379, db=10, decode_responses=True)
@@ -156,7 +214,7 @@ def create_matrix():
 
 
 
-@app.task(name = 'create_user_commodity_matrix')
+@app.task(name = 'create_recommend_list_by_browsing')
 def create_recommend_list_by_browsing():
     import commodity.models
     conn = get_redis_connection('default')

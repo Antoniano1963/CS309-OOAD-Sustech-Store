@@ -27,6 +27,7 @@ class User(models.Model):
         CANCEL = (0, '未激活')
         WAITPAYMENT = (1, '可以购买')
         WAITDELIVER = (2, '可以上传商品')
+        SUPERUSER = (3, '系统管理员')
 
 
     class Identify(models.IntegerChoices):
@@ -247,6 +248,10 @@ class Address(models.Model):
         RECEIVE = (1, '收货')
         SENDER = (2, '发货')
 
+    class AddressType2(models.IntegerChoices):
+        USERUPLOAD = (1, '用户上传')
+        STATIC = (2, '固定地址')
+
     user_name = models.CharField(max_length=20, verbose_name='收件人')
     user_addr = models.CharField(max_length=256, verbose_name='收件地址')
     region = models.IntegerField(choices=Region.choices, default=1)
@@ -257,6 +262,7 @@ class Address(models.Model):
     is_default = models.BooleanField(default=False, verbose_name='是否默认')
     # passport = models.ForeignKey('Passport', verbose_name='账户')
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='address_to_user')
+    address_role = models.IntegerField(choices=AddressType2.choices, default=1)
     objects = AddressManager()
 
     def get_info(self):
@@ -320,6 +326,17 @@ class Comment(models.Model):
             'comment_level_tra': self.comment_level_tra,
         })
 
+    def get_base_info(self):
+        signer = TimestampSigner()
+        return dict({
+            'user_info': self.comment_user.get_base_info(),
+            'comment_content': self.comment_content,
+            'comment_date': str(self.comment_date),
+            'comment_level_mer': self.comment_level_mer,
+            'comment_level_attitude': self.comment_level_attitude,
+            'comment_level_tra': self.comment_level_tra,
+        })
+
 
 class CommentTask(models.Model):
     class TaskLevel(models.IntegerChoices):
@@ -348,7 +365,16 @@ class CommentTask(models.Model):
             'user_info': self.comment_user.get_base_info(),
             'comment_content': self.comment_content,
             'comment_date': str(self.comment_date),
-            'task_info': self.comment_task.get_simple_info(),
+            'task_info': self.comment_task.get_base_info(),
+            'comment_level': self.comment_level,
+        })
+
+    def get_base_info(self):
+        signer = TimestampSigner()
+        return dict({
+            'user_info': self.comment_user.get_base_info(),
+            'comment_content': self.comment_content,
+            'comment_date': str(self.comment_date),
             'comment_level': self.comment_level,
         })
 

@@ -50,7 +50,12 @@ def release_task_transaction(request:HttpRequest):
             'status': '400',
             'message': 'transaction不存在'
         }, status=200)
-    has_task = task.models.Task.objects.filter(task_status__exact=1).filter(relation_transaction=cur_transaction)
+    if current_user != cur_transaction.transaction_sender:
+        return JsonResponse({
+            'status': '400',
+            'message': '不是你发布的task'
+        }, status=200)
+    has_task = task.models.Task.objects.filter(relation_transaction=cur_transaction)
     if has_task:
         return JsonResponse({
             'status': '400',
@@ -70,6 +75,8 @@ def release_task_transaction(request:HttpRequest):
             sender_addr=cur_transaction.sender_location,
             price=price,
         )
+        cur_transaction.has_task = True
+        cur_transaction.save()
         new_task.save()
         current_user.money -= price
         current_user.save()
@@ -273,9 +280,14 @@ def get_task(request:HttpRequest):
         if current_task.task_status != 7:
             raise Exception
         current_task.sender_user = current_user
-        cur_dialogue = start_task_dialogue(current_user, current_task.upload_user, task)
+        cur_dialogue = start_task_dialogue(current_user, current_task.upload_user, current_task)
+        if current_task.task_type == 1:
+            cur_dialogue2 = start_task_dialogue(current_user, current_task.receive_user, current_task)
         current_task.dialogue_between_up_sender = cur_dialogue
+        if current_task.task_type == 1:
+            current_task.dialogue_between_re_sender = cur_dialogue2
         current_task.task_status = 1
+        current_task.change_time = django.utils.timezone.now()
         current_task.save()
         if current_task.task_type == 1:
             current_tra = current_task.relation_transaction
@@ -333,6 +345,7 @@ def task_get_object(request:HttpRequest):
             current_tra = current_task.relation_transaction
             current_tra.status = 3
             current_tra.send_time = django.utils.timezone.now()
+            current_task.change_time = django.utils.timezone.now()
             current_tra.save()
 
     except:
@@ -379,6 +392,7 @@ def task_send_object(request:HttpRequest):
     sid = transaction.savepoint()
     try:
         current_task.task_status = 3
+        current_task.change_time = django.utils.timezone.now()
         current_task.save()
     except:
         transaction.savepoint_rollback(sid)
@@ -426,6 +440,7 @@ def task_receive_object(request:HttpRequest):
         current_task.task_status = 4
         current_task.save()
         current_task.sender_user.money += current_task.price
+        current_task.change_time = django.utils.timezone.now()
         current_task.sender_user.save()
         if current_task.task_type == 1:
             current_tra = current_task.relation_transaction
@@ -480,7 +495,8 @@ def task_comment(request):
 
     sid = transaction.savepoint()
     try:
-        current_task.status = 5
+        current_task.task_status = 5
+        current_task.change_time = django.utils.timezone.now()
         current_task.save()
         new_comment = user.models.CommentTask.objects.create(
             comment_content=comment_content,
@@ -515,8 +531,16 @@ def task_comment(request):
 @login_required()
 def task_wait_sender_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         upload_user=current_user).filter(task_status__exact=7)
     task_list = []
@@ -537,8 +561,16 @@ def task_wait_sender_list_up(request):
 @login_required()
 def task_wait_receive_object_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         upload_user=current_user).filter(task_status__exact=1)
     task_list = []
@@ -559,8 +591,16 @@ def task_wait_receive_object_list_up(request):
 @login_required()
 def task_wait_send_to_place_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         upload_user=current_user).filter(task_status__exact=2)
     task_list = []
@@ -581,8 +621,16 @@ def task_wait_send_to_place_list_up(request):
 @login_required()
 def task_wait_confirm_receive_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         upload_user=current_user).filter(task_status__exact=3)
     task_list = []
@@ -603,8 +651,16 @@ def task_wait_confirm_receive_list_up(request):
 @login_required()
 def task_wait_confirm_comment_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         upload_user=current_user).filter(task_status__exact=4)
     task_list = []
@@ -625,8 +681,16 @@ def task_wait_confirm_comment_list_up(request):
 @login_required()
 def task_wait_confirm_success_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         upload_user=current_user).filter(task_status__exact=5)
     task_list = []
@@ -647,8 +711,16 @@ def task_wait_confirm_success_list_up(request):
 @login_required()
 def task_wait_receive_object_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         sender_user=current_user).filter(task_status__exact=1)
     task_list = []
@@ -669,8 +741,16 @@ def task_wait_receive_object_list_sender(request):
 @login_required()
 def task_wait_send_to_place_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         sender_user=current_user).filter(task_status__exact=2)
     task_list = []
@@ -691,8 +771,16 @@ def task_wait_send_to_place_list_sender(request):
 @login_required()
 def task_wait_confirm_receive_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         sender_user=current_user).filter(task_status__exact=3)
     task_list = []
@@ -713,8 +801,16 @@ def task_wait_confirm_receive_list_sender(request):
 @login_required()
 def task_wait_comment_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         sender_user=current_user).filter(task_status__exact=4)
     task_list = []
@@ -735,8 +831,16 @@ def task_wait_comment_list_sender(request):
 @login_required()
 def task_wait_confirm_success_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         sender_user=current_user).filter(task_status__exact=5)
     task_list = []
@@ -757,8 +861,16 @@ def task_wait_confirm_success_list_sender(request):
 @login_required()
 def task_all_relative_list_receive(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
     all_user_task_list = task.models.Task.objects.filter(
         receive_user=current_user).filter(task_status__exact=5)
     task_list = []
@@ -774,3 +886,131 @@ def task_all_relative_list_receive(request):
         'return_transaction': task_list[start_position: end_position],
         'has_next': str(has_next)
     }, status=200)
+
+
+@login_required()
+def transaction_relation_task(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    tra_id = request.POST.get('tra_id', None)
+    if not tra_id:
+        return JsonResponse({
+        'status': '400',
+        'message': 'POST字段不全',
+    }, status=200)
+    signer = TimestampSigner()
+    try:
+        tra_id = signer.unsign_object(tra_id)
+        current_tra = order.models.Transaction.objects.get(id=tra_id)
+        if not current_tra.has_task:
+            return JsonResponse({
+                'status': '400',
+                'message': 'tra没有task',
+            }, status=200)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'id错误',
+        }, status=200)
+    current_task = task.models.Task.objects.filter(relation_transaction=current_tra)
+    if current_task:
+        current_task = current_task.all()[0]
+    else:
+        return JsonResponse({
+            'status': '400',
+            'message': '系统错误',
+        }, status=200)
+    if current_task.task_status == 0:
+        return JsonResponse({
+            'status': '400',
+            'message': 'task状态错误',
+        }, status=200)
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+        'rela_task': current_task.get_simple_info()
+    }, status=200)
+
+
+@login_required()
+def get_recommend_tasks(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
+    task_list = task.models.Task.objects.filter(task_status=7).order_by('-ddl_time')
+    return_list = []
+    for cur_task in task_list.all():
+        return_list.append(cur_task.get_simple_info())
+    has_next = False
+    if len(return_list) > end_position:
+        has_next = True
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+        'return_List': return_list[start_position:end_position],
+        'has_next': has_next
+    }, status=200)
+
+
+@login_required()
+def get_all_task_list_up(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
+    task_list = task.models.Task.objects.filter(upload_user=current_user).order_by('-change_time')
+    return_list = []
+    for cur_task in task_list.all():
+        return_list.append(cur_task.get_simple_info())
+    has_next = False
+    if len(return_list) > end_position:
+        has_next = True
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+        'return_List': return_list[start_position:end_position],
+        'has_next': has_next
+    }, status=200)
+
+
+@login_required()
+def get_all_task_list_tasker(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
+    task_list = task.models.Task.objects.filter(sender_user=current_user).order_by('-change_time')
+    return_list = []
+    for cur_task in task_list.all():
+        return_list.append(cur_task.get_simple_info())
+    has_next = False
+    if len(return_list) > end_position:
+        has_next = True
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+        'return_List': return_list[start_position:end_position],
+        'has_next': has_next
+    }, status=200)
+

@@ -1,3 +1,5 @@
+from ast import literal_eval
+
 from django.core.signing import TimestampSigner
 from django.db.models import Q
 from django.shortcuts import render
@@ -71,6 +73,23 @@ def commodity_detail(request):
     conn.lpush(key, current_merchandise.id)
     # 保存用户最近浏览的20个商品
     conn.ltrim(key, 0, 19)
+    key2 = "today_view_num_{}".format(django.utils.timezone.now().strftime('%Y-%m-%d'))
+    key3 = "today_view_num_list_{}".format(django.utils.timezone.now().strftime('%Y-%m-%d'))
+    today_view_num = conn.get(key2)
+    if today_view_num:
+        today_view_num = int(today_view_num)
+        today_view_num += 1
+    else:
+        today_view_num = 0
+    conn.set(key2, today_view_num)
+    today_view_num_list = conn.get(key3)
+    if today_view_num_list:
+        today_view_num_list = literal_eval(today_view_num_list)
+        today_view_num_list.append(django.utils.timezone.now().strftime('%Y-%m-%d %X'))
+    else:
+        today_view_num_list = []
+        today_view_num_list.append(django.utils.timezone.now().strftime('%Y-%m-%d %X'))
+    conn.set(key3, str(today_view_num_list))
     return JsonResponse({
         'status': '200',
         'message': '成功返回商品{}的信息'.format(current_merchandise.name),
@@ -91,6 +110,7 @@ def commodity_detail(request):
         'class_level_2': current_merchandise.class_level_2.name,
         'allow_face_trade': current_merchandise.allow_face_trade,
         'as_favorite_number': len(current_merchandise.who_favourite),
+        'mer_status': current_merchandise.status,
     }, status=200)
 
 
@@ -206,7 +226,7 @@ def favorite_merchandise_cancel_handler(request):
         favorite_mer.save()
         return JsonResponse({
             'status': '200',
-            'message': '收藏成功'
+            'message': '删除成功'
         }, status=200)
     except:
         return JsonResponse({
@@ -259,7 +279,7 @@ def add_favorite_business_handler(request):
 def favorite_business_cancel_handler(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     signer = TimestampSigner()
-    favorite_bus_id = request.POST.get('mer_upload_user_id', None)
+    favorite_bus_id = request.POST.get('favorite_bus_id', None)
     if not favorite_bus_id:
         return JsonResponse({
             'status': '300',
@@ -286,7 +306,7 @@ def favorite_business_cancel_handler(request):
     mer_upload_user.save()
     return JsonResponse({
         'status': '200',
-        'message': '收藏成功'
+        'message': '删除成功'
     }, status=200)
     # except:
     #     return JsonResponse({
@@ -297,8 +317,8 @@ def favorite_business_cancel_handler(request):
 
 
 @login_required()
-def search_by_class_label_all(request: HttpRequest):
-    method_list = ["new", "hot", "price", 'default']
+def search_by_class_label_all(request):
+    method_list = ["new", "hot", "price", 'default', "-new", "-hot", "-price"]
     fineness_list = [1, 2, 3, 4]
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     class1_id = request.POST.get('class1_id', None)
@@ -306,7 +326,17 @@ def search_by_class_label_all(request: HttpRequest):
     sort_method = request.POST.get('sort_method', 'default')
     fineness_id = request.POST.get('fineness_id', None)
     search_str = request.POST.get('search_str', None)
-    if not class1_id or sort_method not in method_list:
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段异常',
+        }, status=200)
+    if (not class1_id and not search_str) or (sort_method not in method_list):
         return JsonResponse({
             'status': '400',
             'message': '字段值错误'
@@ -318,25 +348,50 @@ def search_by_class_label_all(request: HttpRequest):
                 'message': '字段值错误'
             }, status=200)
     try:
-        if class2_id:
-            mer_list = commodity.models.Merchandise.objects.get_merchandises_by_class(
-                class1_id=class1_id, class2_id=class2_id, fineness_id=fineness_id, sort=sort_method)
+        if class1_id:
+            if class2_id:
+                mer_list = commodity.models.Merchandise.objects.get_merchandises_by_class(
+                    class1_id=class1_id, class2_id=class2_id, fineness_id=fineness_id, sort=sort_method)
+            else:
+                mer_list = commodity.models.Merchandise.objects.get_merchandises_only_by_class1(
+                    class1_id=class1_id, fineness_id=fineness_id, sort=sort_method)
+            if search_str:
+                mer_list = mer_list.filter(Q(name__contains=search_str) |Q(description__contains=search_str)
+                                           | Q(class_level_1__name_str__contains=search_str)
+                                           | Q(class_level_2__name_str__contains=search_str))
+
         else:
-            mer_list = commodity.models.Merchandise.objects.get_merchandises_only_by_class1(
-                class1_id=class1_id, fineness_id=fineness_id, sort=sort_method)
-        if search_str:
-            mer_list = mer_list.filter(Q(name__contains=search_str) |Q(description__contains=search_str)
-                                       | Q(class_level_1__name_str__contains=search_str)
-                                       | Q(class_level_2__name_str__contains=search_str))
+            mer_list = commodity.models.Merchandise.objects.filter(Q(name__contains=search_str) |Q(description__contains=search_str)
+                                           | Q(class_level_1__name_str__contains=search_str)
+                                           | Q(class_level_2__name_str__contains=search_str))
+            if sort_method:
+                if sort_method == 'new':
+                    order_by = ('-upload_date',)
+                elif sort_method == 'hot':
+                    order_by = ('-favourite_number',)
+                elif sort_method == 'price':
+                    order_by = ('price',)
+                elif sort_method == '-new':
+                    order_by = ('upload_date',)
+                elif sort_method == '-hot':
+                    order_by = ('favourite_number',)
+                elif sort_method == '-price':
+                    order_by = ('-price',)
+                else:
+                    order_by = ('-pk',)  # 按照primary key降序排列。
+                mer_list = mer_list.order_by(*order_by)
+
         return_list = []
         for i in mer_list.all():
             return_list.append(i.get_simple_info())
-        start_position = int(request.POST.get('start_position', 0))
-        end_position = int(request.POST.get('end_position', 10))
+        has_next = False
+        if len(return_list) > end_position:
+            has_next = True
         return JsonResponse({
                 'status': '200',
                 'message': '查询成功',
-                'return_list': return_list[start_position: end_position]
+                'return_list': return_list[start_position: end_position],
+                'has_next': has_next,
             }, status=200)
     except:
         return JsonResponse({

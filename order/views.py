@@ -185,6 +185,11 @@ def cancel_transaction(request:HttpRequest):
             'status': '400',
             'message': '传入的id有误',
         }, status=200)
+    if current_tra.transaction_receiver != current_user:
+        return JsonResponse({
+            'status': '400',
+            'message': '不是你的订单',
+        }, status=200)
     sid = transaction.savepoint()
     sender_id = current_tra.transaction_sender.id
     mer_name = current_tra.transaction_merchandise.name
@@ -438,97 +443,97 @@ def commit_transaction_face(request:HttpRequest):
         }, status=200)
 
 
-@login_required()
-def commit_transaction_QR_code_start(request:HttpRequest):
-    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    current_tra_id = request.POST.get('tra_id', None)
-    if not current_tra_id:
-        return JsonResponse({
-            'status': '200',
-            'message': 'POST字段不全',
-        }, status=200)
-    rec_address_id = request.POST.get('rec_address_id', None)
-    signer = TimestampSigner()
-    try:
-        current_tra_id = signer.unsign_object(current_tra_id)
-        current_tra = Transaction.objects.get(id=current_tra_id)
-    except:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if rec_address_id:
-        rec_address_id = signer.unsign_object(rec_address_id)
-        try:
-            current_tra.receiver_location = user.models.Address.objects.get(id=rec_address_id)
-        except:
-            return JsonResponse({
-                'status': '400',
-                'message': '地址id错误',
-            }, status=200)
-    if current_tra.status != 1:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if current_tra.QRPayStatus != 1:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if not is_user_online(current_tra.transaction_merchandise.upload_user.id):
-        return JsonResponse({
-            'status': '400',
-            'message': '用户不在线',
-        }, status=200)
-    send_notice(current_tra.transaction_merchandise.upload_user.id,
-                '商品{}想要被{}通过二维码方式付款，请确认自己可以处理,剩余时间为{}s'.format(
-                    current_tra.transaction_merchandise.name, current_user.name,
-                    3600 - (django.utils.timezone.now() - current_tra.create_time).seconds))
-    current_tra.QRPayStatus = 2
-    current_tra.save()
-    return JsonResponse({
-            'status': '200',
-            'message': '成功',
-        }, status=200)
-
-
-@login_required()
-def commit_transaction_QR_code_ready(request:HttpRequest):
-    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    current_tra_id = request.POST.get('tra_id', None)
-    if not current_tra_id:
-        return JsonResponse({
-            'status': '200',
-            'message': 'POST字段不全',
-        }, status=200)
-    signer = TimestampSigner()
-    try:
-        current_tra_id = signer.unsign_object(current_tra_id)
-        current_tra = Transaction.objects.get(id=current_tra_id)
-    except:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if current_tra.status != 1:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if current_tra.QRPayStatus != 2:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    send_notice(current_tra.transaction_receiver.id,
-                '商品{}现在可以通过二维码方式付款了'.format(current_tra.transaction_merchandise.name))
-    current_tra.QRPayStatus = 3
-    current_tra.save()
-    return JsonResponse({
-            'status': '200',
-            'message': '成功',
-        }, status=200)
+# @login_required()
+# def commit_transaction_QR_code_start(request:HttpRequest):
+#     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+#     current_tra_id = request.POST.get('tra_id', None)
+#     if not current_tra_id:
+#         return JsonResponse({
+#             'status': '200',
+#             'message': 'POST字段不全',
+#         }, status=200)
+#     rec_address_id = request.POST.get('rec_address_id', None)
+#     signer = TimestampSigner()
+#     try:
+#         current_tra_id = signer.unsign_object(current_tra_id)
+#         current_tra = Transaction.objects.get(id=current_tra_id)
+#     except:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     if rec_address_id:
+#         rec_address_id = signer.unsign_object(rec_address_id)
+#         try:
+#             current_tra.receiver_location = user.models.Address.objects.get(id=rec_address_id)
+#         except:
+#             return JsonResponse({
+#                 'status': '400',
+#                 'message': '地址id错误',
+#             }, status=200)
+#     if current_tra.status != 1:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     if current_tra.QRPayStatus != 1:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     if not is_user_online(current_tra.transaction_merchandise.upload_user.id):
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '用户不在线',
+#         }, status=200)
+#     send_notice(current_tra.transaction_merchandise.upload_user.id,
+#                 '商品{}想要被{}通过二维码方式付款，请确认自己可以处理,剩余时间为{}s'.format(
+#                     current_tra.transaction_merchandise.name, current_user.name,
+#                     3600 - (django.utils.timezone.now() - current_tra.create_time).seconds))
+#     current_tra.QRPayStatus = 2
+#     current_tra.save()
+#     return JsonResponse({
+#             'status': '200',
+#             'message': '成功',
+#         }, status=200)
+#
+#
+# @login_required()
+# def commit_transaction_QR_code_ready(request:HttpRequest):
+#     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+#     current_tra_id = request.POST.get('tra_id', None)
+#     if not current_tra_id:
+#         return JsonResponse({
+#             'status': '200',
+#             'message': 'POST字段不全',
+#         }, status=200)
+#     signer = TimestampSigner()
+#     try:
+#         current_tra_id = signer.unsign_object(current_tra_id)
+#         current_tra = Transaction.objects.get(id=current_tra_id)
+#     except:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     if current_tra.status != 1:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     if current_tra.QRPayStatus != 2:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     send_notice(current_tra.transaction_receiver.id,
+#                 '商品{}现在可以通过二维码方式付款了'.format(current_tra.transaction_merchandise.name))
+#     current_tra.QRPayStatus = 3
+#     current_tra.save()
+#     return JsonResponse({
+#             'status': '200',
+#             'message': '成功',
+#         }, status=200)
 
 
 @transaction.atomic
@@ -536,7 +541,8 @@ def commit_transaction_QR_code_ready(request:HttpRequest):
 def commit_transaction_QR_code_commit(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_tra_id = request.POST.get('tra_id', None)
-    if not current_tra_id:
+    current_pay_prove = request.FILES.get('current_pay_prove', None)
+    if not all ((current_tra_id, current_pay_prove)):
         return JsonResponse({
             'status': '200',
             'message': 'POST字段不全',
@@ -565,17 +571,18 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
             'status': '400',
             'message': '订单异常',
         }, status=200)
-    if current_tra.QRPayStatus != 3:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
+    # if current_tra.QRPayStatus != 3:
+    #     return JsonResponse({
+    #         'status': '400',
+    #         'message': '订单异常',
+    #     }, status=200)
     sid = transaction.savepoint()
     try:
-        if current_tra.transaction_merchandise.status != 5:
+        if current_tra.transaction_merchandise.status != 1:
             raise Exception
         current_tra.pay_time = django.utils.timezone.now()
         current_tra.transaction_merchandise.status = 2
+        current_tra.transaction_merchandise.save()
         current_tra.status = 7
         current_tra.pay_method = 2
         current_tra.save()
@@ -597,49 +604,49 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
 
 
 
-@transaction.atomic
-@login_required()
-def commit_transaction_QR_code_commit_receive(request:HttpRequest):
-    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    current_tra_id = request.POST.get('tra_id', None)
-    if not current_tra_id:
-        return JsonResponse({
-            'status': '200',
-            'message': 'POST字段不全',
-        }, status=200)
-    signer = TimestampSigner()
-    try:
-        current_tra_id = signer.unsign_object(current_tra_id)
-        current_tra = Transaction.objects.get(id=current_tra_id)
-    except:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if current_tra.status != 7:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    sid = transaction.savepoint()
-    try:
-        current_tra.transaction_merchandise.status = 2
-        current_tra.status = 2
-        current_tra.comfirm_time = django.utils.timezone.now()
-        current_tra.save()
-    except Exception as e:
-        transaction.savepoint_rollback(sid)
-        return JsonResponse({
-            'status': '400',
-            'message': '服务器错误',
-        }, status=200)
-    transaction.savepoint_commit(sid)
-    send_notice(current_tra.transaction_receiver.id,
-                '商品{}被卖家确认，即将发货'.format(current_tra.transaction_merchandise.name))
-    return JsonResponse({
-        'status': '200',
-        'message': '成功',
-    }, status=200)
+# @transaction.atomic
+# @login_required()
+# def commit_transaction_QR_code_commit_receive(request:HttpRequest):
+#     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+#     current_tra_id = request.POST.get('tra_id', None)
+#     if not current_tra_id:
+#         return JsonResponse({
+#             'status': '200',
+#             'message': 'POST字段不全',
+#         }, status=200)
+#     signer = TimestampSigner()
+#     try:
+#         current_tra_id = signer.unsign_object(current_tra_id)
+#         current_tra = Transaction.objects.get(id=current_tra_id)
+#     except:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     if current_tra.status != 7:
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '订单异常',
+#         }, status=200)
+#     sid = transaction.savepoint()
+#     try:
+#         current_tra.transaction_merchandise.status = 2
+#         current_tra.status = 2
+#         current_tra.comfirm_time = django.utils.timezone.now()
+#         current_tra.save()
+#     except Exception as e:
+#         transaction.savepoint_rollback(sid)
+#         return JsonResponse({
+#             'status': '400',
+#             'message': '服务器错误',
+#         }, status=200)
+#     transaction.savepoint_commit(sid)
+#     send_notice(current_tra.transaction_receiver.id,
+#                 '商品{}被卖家确认，即将发货'.format(current_tra.transaction_merchandise.name))
+#     return JsonResponse({
+#         'status': '200',
+#         'message': '成功',
+#     }, status=200)
 
 
 @transaction.atomic
@@ -675,6 +682,8 @@ def already_send_transaction(request:HttpRequest):
     try:
         current_tra.status = 3
         current_tra.send_time = django.utils.timezone.now()
+        if current_tra.pay_method == 2:
+            current_tra.comfirm_time = django.utils.timezone.now()
         current_tra.save()
     except Exception as e:
         transaction.savepoint_rollback(sid)
@@ -819,6 +828,24 @@ def comment_transaction(request:HttpRequest):
             'status': '400',
             'message': '服务器错误',
         }, status=200)
+    conn = get_redis_connection('default')
+    key = 'today_finish_order_num_{}'.format(django.utils.timezone.now().strftime('%Y-%m-%d'))
+    key2 = 'today_finish_order_list{}'.format(django.utils.timezone.now().strftime('%Y-%m-%d'))
+    today_order_num = conn.get(key)
+    if today_order_num:
+        today_order_num = int(today_order_num)
+        today_order_num += 1
+    else:
+        today_order_num = 1
+    conn.set(key, today_order_num)
+    today_order_list = conn.get(key2)
+    if today_order_list:
+        today_order_list = literal_eval(today_order_list)
+        today_order_list.append(django.utils.timezone.now().strftime('%Y-%m-%d %X'))
+    else:
+        today_order_list = []
+        today_order_list.append(django.utils.timezone.now().strftime('%Y-%m-%d %X'))
+    conn.set(key2, str(today_order_list))
     transaction.savepoint_commit(sid)
     send_notice(current_tra.transaction_receiver.id,
                 '商品{}评价成功'.format(current_tra.transaction_merchandise.name))
@@ -852,13 +879,18 @@ def transaction_has_problem(request):
             'status': '400',
             'message': 'id解码错误',
         }, status=200)
+    if current_tra.status > 4 or current_tra.has_problem:
+        return JsonResponse({
+            'status': '400',
+            'message': '订单状态错误',
+        }, status=200)
     if current_user.id != current_tra.transaction_sender.id and current_user.id != current_tra.transaction_receiver.id:
         return JsonResponse({
             'status': '400',
             'message': '不是你的transaction',
         }, status=200)
     if problem_type == 1:
-        if current_tra.status < 2 or current_tra.pay_method !=3:
+        if current_tra.status < 2 or current_tra.pay_method != 3:
             return JsonResponse({
                 'status': '400',
                 'message': '订单状态异常',
@@ -893,8 +925,16 @@ def transaction_has_problem(request):
             problem_description=problem_description,
             problem_transaction=current_tra,
             problem_uploader=current_user,
-            problem_type=problem_type
+            problem_type=problem_type,
+            transaction_last_status=current_tra.status
         )
+        # current_tra.status = 6
+        current_tra.has_problem = True
+        current_tra.rela_problem_id = new_problem.id
+        current_tra.rela_problem_description = new_problem.problem_description
+        current_tra.rela_problem_type = new_problem.problem_type
+        current_tra.has_problem_before = True
+        current_tra.save()
     except Exception as e:
         transaction.savepoint_rollback(sid)
         return JsonResponse({

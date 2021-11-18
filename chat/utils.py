@@ -154,6 +154,7 @@ def send_notice(user_id, message):
                     'session_id': -1,
                     'from_id': -1,
                     'to': signer.sign_object(current_user.id),
+                    'data_type': 1,
                         },
         }
     )
