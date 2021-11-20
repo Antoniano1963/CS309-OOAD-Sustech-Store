@@ -7,10 +7,10 @@ import user.models
 from django.core.signing import TimestampSigner
 import django.utils.timezone
 
-from Final_Project1.settings import MEDIA_ROOT
+from Final_Project1.settings import MEDIA_ROOT, FILE_URL
 
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 
 class Transaction(models.Model):
 
@@ -94,6 +94,7 @@ class Transaction(models.Model):
             'problem_description': self.rela_problem_description,
             'has_problem_before': self.has_problem_before,
             'pay_prove': f"{file_url}{signer.sign_object(self.get_pay_prove_info())}",
+            'pay_method': self.pay_method,
         })
 
     def get_basic_overview(self):
@@ -110,6 +111,7 @@ class Transaction(models.Model):
             'has_task': self.has_task,
             'has_problem': self.has_problem,
             'has_problem_before': self.has_problem_before,
+            'pay_method': self.pay_method,
         })
 
     def get_pay_prove_info(self):

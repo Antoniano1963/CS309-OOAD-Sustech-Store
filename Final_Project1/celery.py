@@ -32,36 +32,36 @@ app.now = timezone.now
 
 
 
-app.conf.beat_schedule = {
-    'add-every-30-seconds': {
-        'task': 'cancel_over_ddl_task',
-        'schedule': 60.0,
-        'args': ()
-    },
-    'add-every-30-seconds2': {
-        'task': 'cancel_non_pay_tra',
-        'schedule': 60.0,
-        'args': ()
-    },
-    'add-every-30-seconds3': {
-        'task': 'create_user_commodity_matrix',
-        'schedule': 120.0,
-        'args': ()
-    },
-    'add-every-30-seconds4': {
-        'task': 'create_recommend_list_by_browsing',
-        'schedule': 60.0,
-        'args': ()
-    },
-}
-app.conf.timezone = 'UTC'
+# app.conf.beat_schedule = {
+#     'add-every-30-seconds': {
+#         'task': 'cancel_over_ddl_task',
+#         'schedule': 60.0,
+#         'args': ()
+#     },
+#     'add-every-30-seconds2': {
+#         'task': 'cancel_non_pay_tra',
+#         'schedule': 60.0,
+#         'args': ()
+#     },
+#     'add-every-30-seconds3': {
+#         'task': 'create_user_commodity_matrix',
+#         'schedule': 120.0,
+#         'args': ()
+#     },
+#     'add-every-30-seconds4': {
+#         'task': 'create_recommend_list_by_browsing',
+#         'schedule': 60.0,
+#         'args': ()
+#     },
+# }
+# app.conf.timezone = 'UTC'
 
-# @app.on_after_configure.connect
-# def setup_periodic_tasks(sender, **kwargs):
-#     sender.add_periodic_task(60.0, cancel_non_pay_tra.s(), name='cancel non-pay transactions every 60 seconds')
-#     sender.add_periodic_task(60.0, create_user_commodity_matrix.s(), name='create recommend matrix every 60 seconds')
-#     sender.add_periodic_task(60.0, cancel_over_ddl_task.s(), name='cancel over ddl tasks every 60 seconds')
-#     sender.add_periodic_task(60.0, create_recommend_list_by_browsing.s(), name='create recommend list by browsing number every 60 second')
+@app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    sender.add_periodic_task(60.0, cancel_non_pay_tra.s(), name='cancel non-pay transactions every 60 seconds')
+    sender.add_periodic_task(60.0, create_user_commodity_matrix.s(), name='create recommend matrix every 60 seconds')
+    sender.add_periodic_task(60.0, cancel_over_ddl_task.s(), name='cancel over ddl tasks every 60 seconds')
+    sender.add_periodic_task(60.0, create_recommend_list_by_browsing.s(), name='create recommend list by browsing number every 60 second')
 
 
 

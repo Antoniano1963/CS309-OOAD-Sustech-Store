@@ -210,5 +210,7 @@ HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 6 # 指定搜索结果每页的条数
 
+FILE_URL = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+
 # CACHALOT_ENABLED = True
 # CACHALOT_CACHE_RANDOM = True

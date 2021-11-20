@@ -5,10 +5,10 @@ from django.core.signing import TimestampSigner
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 import django.utils.timezone
-from Final_Project1.settings import MEDIA_ROOT
+from Final_Project1.settings import MEDIA_ROOT, FILE_URL
 # Create your models here.
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 
 
 class MerchandiseManager(models.Manager):

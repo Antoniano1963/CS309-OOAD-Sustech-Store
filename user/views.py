@@ -23,6 +23,9 @@ from utils import myemail_sender, random_utils
 from Final_Project1.decotators.login_required import login_required
 from django.db import transaction
 from chat.utils import *
+import re
+from utils.check_args_valid import *
+from Final_Project1.settings import FILE_URL
 
 
 def hash_code(s, salt='mysite'):# 加点盐
@@ -51,7 +54,7 @@ def login_fuc(request):
         if request.session.get('is_login', False):
             return JsonResponse({
                 'status': '300',
-                'message': '重复登录'
+                'message': '重复登录',
             })
         user_email_name = request.POST.get('user_email', None)
         password = request.POST.get('password', None)
@@ -144,6 +147,11 @@ def register(request):
                     message = 'email username password 不能为空'
                     request.session.flush()
                     return JsonResponse({'message': message, 'status': '510'})
+                if not check_args_valid([username, password, email]):
+                    return JsonResponse({
+                        'status': '400',
+                        'message': 'POST字段错误'
+                    })
                 same_name_user = user.models.User.objects.filter(name=username)
                 if same_name_user:  # 用户名唯一
                     return JsonResponse({
@@ -194,6 +202,15 @@ def new_register_email(request):
                     'status': '400',
                     'message': 'POST字段不全'
                 }, status=200)
+            if re.match(r'[0-9_]{0,19}@mail.sustech.edu.cn', user_email) or re.match(r'[0-9a-zA-Z_]{0,19}@qq.com',
+                                                                               user_email) or re.match(
+                    r'[0-9a-zA-Z_]{0,19}@163.com', user_email) or re.match(r'[0-9a-zA-Z_]{0,19}@sustech.edu.cn', user_email):
+                pass
+            else:
+                return JsonResponse({
+                    'status': '500',
+                    'message': '邮箱地址格式错误'
+                })
             code = random_utils.random_str(6, 'upper_str')
             send_active_email.delay(code, 'a', user_email, type=1)
             request.session['code'] = code
@@ -254,7 +271,7 @@ def mobile_login(request):
     return HttpResponse(status=500)
 
 
-@login_required()
+@login_required(status=2)
 def upload_commodity(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     mer_name = request.POST.get('mer_name', None)
@@ -293,6 +310,11 @@ def upload_commodity(request):
                 'status': '400',
                 'message': '地址id错误',
             }, status=200)
+    if not check_args_valid([mer_name, mer_description, mer_price, class1_id, class2_id, fineness_id, deliver_price]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         image2 = request.FILES['image2']
     except:
@@ -349,7 +371,7 @@ def upload_commodity(request):
 
 
 @transaction.atomic()
-@login_required()
+@login_required(status=2)
 def delete_commodity(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     mer_id = request.POST.get('mer_id', None)
@@ -359,6 +381,11 @@ def delete_commodity(request):
             'status': '400',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([mer_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         mer_id = signer.unsign_object(mer_id)
         current_mer = commodity.models.Merchandise.objects.get(id=mer_id)
@@ -390,7 +417,7 @@ def delete_commodity(request):
     }, status=200)
 
 
-@login_required()
+@login_required(status=1)
 def wait_payment_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
@@ -422,33 +449,33 @@ def wait_payment_fuc(request):
 
 @login_required()
 def wait_deliver_fuc(request):
-        current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-        start_position = request.POST.get('start_position', 0)
-        end_position = request.POST.get('end_position', 10)
-        try:
-            start_position = int(start_position)
-            end_position = int(end_position)
-        except:
-            JsonResponse({
-                'status': '400',
-                'message': '字段异常',
-            }, status=200)
-        all_user_transaction_wait_deliver = Transaction.objects.filter(
-            transaction_receiver=current_user).filter(status__exact=2)
-        transaction_list = []
-        for i in all_user_transaction_wait_deliver.all():
-            transaction_list.append(i.get_simple_overview())
-        return_list_len = len(transaction_list)
-        if return_list_len > end_position:
-            has_next = True
-        else:
-            has_next = False
-        return JsonResponse({
-            'status': '200',
-            'message': '查询成功',
-            'return_transaction': transaction_list[start_position: end_position],
-            'has_next': str(has_next)
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
         }, status=200)
+    all_user_transaction_wait_deliver = Transaction.objects.filter(
+        transaction_receiver=current_user).filter(status__exact=2)
+    transaction_list = []
+    for i in all_user_transaction_wait_deliver.all():
+        transaction_list.append(i.get_simple_overview())
+    return_list_len = len(transaction_list)
+    if return_list_len > end_position:
+        has_next = True
+    else:
+        has_next = False
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'return_transaction': transaction_list[start_position: end_position],
+        'has_next': str(has_next)
+    }, status=200)
 
 
 @login_required()
@@ -571,33 +598,33 @@ def wait_payment_fuc_seller(request):
 
 @login_required()
 def wait_deliver_fuc_seller(request):
-        current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-        start_position = request.POST.get('start_position', 0)
-        end_position = request.POST.get('end_position', 10)
-        try:
-            start_position = int(start_position)
-            end_position = int(end_position)
-        except:
-            JsonResponse({
-                'status': '400',
-                'message': '字段异常',
-            }, status=200)
-        all_user_transaction_wait_deliver = Transaction.objects.filter(
-            transaction_sender=current_user).filter(status__exact=2)
-        transaction_list = []
-        for i in all_user_transaction_wait_deliver.all():
-            transaction_list.append(i.get_simple_overview())
-        return_list_len = len(transaction_list)
-        if return_list_len > end_position:
-            has_next = True
-        else:
-            has_next = False
-        return JsonResponse({
-            'status': '200',
-            'message': '查询成功',
-            'return_transaction': transaction_list[start_position: end_position],
-            'has_next': str(has_next)
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    start_position = request.POST.get('start_position', 0)
+    end_position = request.POST.get('end_position', 10)
+    try:
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': '字段异常',
         }, status=200)
+    all_user_transaction_wait_deliver = Transaction.objects.filter(
+        transaction_sender=current_user).filter(status__exact=2)
+    transaction_list = []
+    for i in all_user_transaction_wait_deliver.all():
+        transaction_list.append(i.get_simple_overview())
+    return_list_len = len(transaction_list)
+    if return_list_len > end_position:
+        has_next = True
+    else:
+        has_next = False
+    return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'return_transaction': transaction_list[start_position: end_position],
+        'has_next': str(has_next)
+    }, status=200)
 
 
 @login_required()
@@ -688,7 +715,7 @@ def success_fuc_seller(request):
     }, status=200)
 
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 
 
 @login_required()
@@ -866,6 +893,11 @@ def add_address(request):
             'message': 'POST字段不全'
         }, status=200)
     # try:
+    if not check_args_valid([user_name, user_addr, user_phone, region_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     new_addr = user.models.Address.objects.create(
         user_name=user_name,
         user_addr=user_addr,
@@ -896,6 +928,11 @@ def delete_address(request):
             'status': '400',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([addr_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         signer = TimestampSigner()
         addr_id = signer.unsign_object(addr_id)
@@ -923,7 +960,7 @@ def delete_address(request):
     }, status=200)
 
 
-@login_required()
+@login_required(status=1)
 def get_address_list(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
@@ -961,9 +998,8 @@ def get_address_list(request:HttpRequest):
 @login_required()
 def upload_head_photo(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    try:
-        header_photo = request.FILES['header_photo']
-    except:
+    header_photo = request.FILES.get('header_photo', None)
+    if not header_photo:
         return JsonResponse({
             'status': '201',
             'message': '用户未上传图片'
@@ -1002,6 +1038,11 @@ def activate(request:HttpRequest):
             'status': '400',
             'message': '用户上传字段不全'
         }, status=200)
+    if not check_args_valid([real_name, user_identify, pay_password]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     sid = transaction.savepoint()
     # try:
     signer = TimestampSigner()
@@ -1046,6 +1087,16 @@ def modify_self_info(request:HttpRequest):
     real_name = request.POST.get('real_name', None)
     user_identify = request.POST.get('user_identify', None)
     self_description = request.POST.get('self_description', None)
+    if not all((real_name, user_identify, self_description)):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
+    if not check_args_valid([real_name, user_identify, self_description]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         if current_user:
             current_user.real_name = real_name
@@ -1141,11 +1192,20 @@ def upload_QR_Code(request:HttpRequest):
     }, status=200)
 
 
-@login_required(status=2)
+@login_required(status=1)
 def get_QR_Code(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    user_id = request.POST.get('user_id', None)
     signer = TimestampSigner()
-    QR_code_url = f"{file_url}{signer.sign_object(current_user.get_QRCode_info())}",
+    try:
+        user_id = signer.unsign_object(user_id)
+        uploader = user.models.User.objects.get(id=user_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'id错误'
+        }, status=200)
+    QR_code_url = f"{file_url}{signer.sign_object(uploader.get_QRCode_info())}",
     return JsonResponse({
         'status': '200',
         'message': '查询成功',
@@ -1162,27 +1222,27 @@ def user_page(request):
         'status': '400',
         'message': 'id错误'
     }, status=200)
-    # try:
-    signer = TimestampSigner()
-    user_id = signer.unsign_object(user_id)
-    target_uesr = user.models.User.objects.get(id=user_id)
-    base_info = target_uesr.get_base_info()
-    selling_List_ord = commodity.models.Merchandise.objects.filter(upload_user_id__exact=user_id).filter(
-        status__exact=1)
-    selling_list = []
-    for i in selling_List_ord.all():
-        selling_list.append(i.get_simple_info())
-    return JsonResponse({
-    'status': '200',
-    'message': '查询成功',
-    'base_info': base_info,
-    'selling_list': selling_list
-}, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '查询错误'
-    #     }, status=200)
+    try:
+        signer = TimestampSigner()
+        user_id = signer.unsign_object(user_id)
+        target_uesr = user.models.User.objects.get(id=user_id)
+        base_info = target_uesr.get_base_info()
+        selling_List_ord = commodity.models.Merchandise.objects.filter(upload_user_id__exact=user_id).filter(
+            status__exact=1)
+        selling_list = []
+        for i in selling_List_ord.all():
+            selling_list.append(i.get_simple_info())
+        return JsonResponse({
+        'status': '200',
+        'message': '查询成功',
+        'base_info': base_info,
+        'selling_list': selling_list
+    }, status=200)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '查询错误'
+        }, status=200)
 
 
 @login_required(status=1)
@@ -1276,6 +1336,11 @@ def cart_del(request):
         'status': '400',
         'message': 'POST字段不全'
     }, status=200)
+    if not check_args_valid([mer_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     current_mer = commodity.models.Merchandise.objects.filter(id__exact=mer_id)
     if not current_mer:
         return JsonResponse({
@@ -1300,6 +1365,11 @@ def recharge(request):
         'status': '400',
         'message': 'POST字段不全'
     }, status=200)
+    if not check_args_valid([money_num]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         money_num = float(money_num)
     except:
@@ -1378,6 +1448,11 @@ def change_password(request):
             'status': '400',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([old_password, new_password]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     if hash_code(old_password) != current_user.password:
         return JsonResponse({
             'status': '300',
@@ -1402,7 +1477,7 @@ def change_password(request):
 
 
 @transaction.atomic
-@login_required()
+@login_required(status=1)
 def change_pay_password(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     old_pay_password = request.POST.get('old_pay_password', None)
@@ -1412,6 +1487,11 @@ def change_pay_password(request):
             'status': '400',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([old_pay_password, new_pay_password]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     if hash_code(old_pay_password) != current_user.pay_password:
         return JsonResponse({
             'status': '300',
@@ -1501,9 +1581,12 @@ def get_recommend_list(request):
                 break
     return_list = []
     for id in return_id_list:
-        current_mer = commodity.models.Merchandise.objects.get(id=id)
-        if current_mer.status == 1:
-            return_list.append(current_mer.get_simple_info())
+        try:
+            current_mer = commodity.models.Merchandise.objects.get(id=id)
+            if current_mer.status == 1:
+                return_list.append(current_mer.get_simple_info())
+        except:
+            continue
 
     return JsonResponse({
         'status': '200',
@@ -1563,6 +1646,15 @@ def forget_password_email(request):
                 'status': '407',
                 'message': 'post字段不全'
             }, status=200)
+        if re.match(r'[0-9_]{0,19}@mail.sustech.edu.cn', user_email) or re.match(r'[0-9a-zA-Z_]{0,19}@qq.com',
+                                                                                 user_email) or re.match(
+            r'[0-9a-zA-Z_]{0,19}@163.com', user_email) or re.match(r'[0-9a-zA-Z_]{0,19}@sustech.edu.cn', user_email):
+            pass
+        else:
+            return JsonResponse({
+                'status': '500',
+                'message': '邮箱地址格式错误'
+            })
         code = random_utils.random_str(6, 'upper_str')
         send_active_email.delay(code, 'a', user_email, type=3)
         request.session['forget_code'] = code
@@ -1576,14 +1668,25 @@ def forget_password_email(request):
 
 def forget_password(request):
     if request.method == 'POST':
-        code = request.session['forget_code']
+        try:
+            code = request.session['forget_code']
+        except:
+            return JsonResponse({
+                'status': '400',
+                'message': 'session错误'
+            }, status=200)
         post_code = request.POST.get('post_code', None)
         new_password = request.POST.get('new_password', None)
-        if not all ((new_password, post_code)):
+        if not all((new_password, post_code)):
             return JsonResponse({
                 'status': '400',
                 'message': 'POST字段不全'
             }, status=200)
+        if not check_args_valid([new_password, post_code]):
+            return JsonResponse({
+                'status': '400',
+                'message': 'POST字段错误'
+            })
         if code != post_code:
             return JsonResponse({
                 'status': '400',
@@ -1630,7 +1733,13 @@ def forget_pay_password_email(request):
 @login_required(status=1)
 def forget_pay_password(request):
     if request.method == 'POST':
-        code = request.session['forget_code']
+        try:
+            code = request.session['forget_code']
+        except:
+            return JsonResponse({
+                'status': '400',
+                'message': 'session错误'
+            }, status=200)
         post_code = request.POST.get('post_code', None)
         new_password = request.POST.get('new_password', None)
         if not all((new_password, post_code)):
@@ -1638,6 +1747,11 @@ def forget_pay_password(request):
                 'status': '400',
                 'message': 'POST字段不全'
             }, status=200)
+        if not check_args_valid([new_password, post_code]):
+            return JsonResponse({
+                'status': '400',
+                'message': 'POST字段错误'
+            })
         if code != post_code:
             return JsonResponse({
                 'status': '400',
@@ -1656,50 +1770,14 @@ def forget_pay_password(request):
     return HttpResponse(status=500)
 
 
-
-
-
-@transaction.atomic
 @login_required()
-def commit_transaction_QR_code_commit_receive(request:HttpRequest):
+def get_current_user_info(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    current_tra_id = request.POST.get('tra_id', None)
-    if not current_tra_id:
-        return JsonResponse({
-            'status': '200',
-            'message': 'POST字段不全',
-        }, status=200)
-    signer = TimestampSigner()
-    try:
-        current_tra_id = signer.unsign_object(current_tra_id)
-        current_tra = Transaction.objects.get(id=current_tra_id)
-    except:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    if current_tra.status != 7:
-        return JsonResponse({
-            'status': '400',
-            'message': '订单异常',
-        }, status=200)
-    sid = transaction.savepoint()
-    try:
-        current_tra.transaction_merchandise.status = 2
-        current_tra.status = 2
-        current_tra.comfirm_time = django.utils.timezone.now()
-        current_tra.save()
-    except Exception as e:
-        transaction.savepoint_rollback(sid)
-        return JsonResponse({
-            'status': '400',
-            'message': '服务器错误',
-        }, status=200)
-    transaction.savepoint_commit(sid)
-    send_notice(current_tra.transaction_receiver.id,
-                '商品{}被卖家确认，即将发货'.format(current_tra.transaction_merchandise.name))
     return JsonResponse({
         'status': '200',
         'message': '成功',
+        'info': current_user.get_base_info()
     }, status=200)
+
+
 

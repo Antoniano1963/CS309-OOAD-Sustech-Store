@@ -3,6 +3,16 @@ from django.utils.deprecation import MiddlewareMixin
 from django_redis import get_redis_connection
 
 
+def get_ip(request) -> str:
+    real_ip = request.META.get('HTTP_X_REAL_IP', None)
+    if not real_ip:
+        real_ip = request.META.get('HTTP_REMOTE_USER_IP', None)
+        if not real_ip:
+            real_ip = request.META.get("REMOTE_ADDR", '127.0.0.1')
+    print(f"Get IP: {real_ip}")
+    return real_ip
+
+
 class BlockedIpMiddlewareID(MiddlewareMixin):
     def process_request(self, request):
         try:
@@ -29,7 +39,8 @@ class BlockedIpMiddlewareID(MiddlewareMixin):
 class BlockedIpMiddlewareIP(MiddlewareMixin):
     def process_request(self, request):
         try:
-            key = 'ip_{}_visit_num'.format(request.META['REMOTE_ADDR'])
+            real_ip = get_ip(request)
+            key = 'ip_{}_visit_num'.format(real_ip)
             conn = get_redis_connection('default')
             visit_num = conn.get(key)
             if visit_num:

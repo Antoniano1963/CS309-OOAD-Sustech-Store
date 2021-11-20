@@ -87,9 +87,13 @@ def add_info_to_dialogue(user_id, dialogue_id, message, data_type=1):
     if user_id == str(current_dialogue.dialogue_user1.id):
         current_dialogue.user2_wait_message_number += 1
         return_id = current_dialogue.dialogue_user2.id
+        my_name = current_dialogue.dialogue_user1.name
+        other_name = current_dialogue.dialogue_user2.name
     else:
         current_dialogue.user1_wait_message_number += 1
         return_id = current_dialogue.dialogue_user1.id
+        other_name = current_dialogue.dialogue_user1.name
+        my_name = current_dialogue.dialogue_user2.name
 
     try:
         current_dialogue.dialogue_info.append(
@@ -98,13 +102,17 @@ def add_info_to_dialogue(user_id, dialogue_id, message, data_type=1):
                 'information': message,
                 'which_say': user_id,
                 'data_type': data_type,
+                'my_name': my_name,
+                'other_name': other_name,
             })
         )
         current_dialogue.update_date = django.utils.timezone.now()
         current_dialogue.save()
         return dict({
             'status': True,
-            'return_id': return_id
+            'return_id': return_id,
+            'my_name': my_name,
+            'other_name':other_name,
         })
     except:
         return dict({

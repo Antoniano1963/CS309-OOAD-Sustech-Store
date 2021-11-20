@@ -11,6 +11,7 @@ from chat.utils import *
 from django.db.models import Q
 import datetime
 import django.utils.timezone
+from utils.check_args_valid import *
 # Create your views here.
 
 
@@ -28,6 +29,11 @@ def release_task_transaction(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([tra_id, ddl_time, price, description, name]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         price = float(price)
@@ -111,6 +117,11 @@ def release_task_others(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([sender_addr_id, ddl_time, price, description, name, receive_addr_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     price = float(price)
     if current_user.money < price:
@@ -171,6 +182,11 @@ def cancel_task(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([task_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         task_id = signer.unsign_object(task_id)
@@ -261,6 +277,11 @@ def get_task(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([task_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         task_id = signer.unsign_object(task_id)
@@ -318,6 +339,11 @@ def task_get_object(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([task_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         task_id = signer.unsign_object(task_id)
@@ -370,6 +396,11 @@ def task_send_object(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([task_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         task_id = signer.unsign_object(task_id)
@@ -416,6 +447,11 @@ def task_receive_object(request:HttpRequest):
             'status': '400',
             'message': 'POST错误'
         }, status=200)
+    if not check_args_valid([task_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         task_id = signer.unsign_object(task_id)
@@ -460,7 +496,7 @@ def task_receive_object(request:HttpRequest):
 
 
 @transaction.atomic
-@login_required()
+@login_required(status=1)
 def task_comment(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_task_id = request.POST.get('task_id', None)
@@ -471,6 +507,11 @@ def task_comment(request):
             'status': '400',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_task_id, comment_content, comment_level]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         current_task_id = signer.unsign_object(current_task_id)

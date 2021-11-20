@@ -12,6 +12,7 @@ from django.db import transaction
 from chat.utils import *
 from django.db.models import Q
 from order.models import Transaction, TransactionProblem
+from utils.check_args_valid import *
 # Create your views here.
 
 
@@ -33,7 +34,7 @@ def problems_list(request):
             'status': '400',
             'message': 'position异常',
         }, status=200)
-    problems_lists = TransactionProblem.objects.filter(problem_status=1)
+    problems_lists = TransactionProblem.objects.filter(problem_status=1).order_by('-problem_upload_date')
     return_list = []
     for pro in problems_lists.all():
         return_list.append(pro.get_detail_info())
@@ -65,6 +66,11 @@ def handle_problem(request):
             'status': '400',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([superuser_log, problem_role, problem_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         problem_role = int(problem_role)
         signer = TimestampSigner()

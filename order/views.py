@@ -12,9 +12,11 @@ from django.db import transaction
 from chat.utils import *
 from order.utils import *
 from django.db.models import Q
+from utils.check_args_valid import *
+from Final_Project1.settings import FILE_URL
 import utils.random_utils
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 
 def hash_code(s, salt='mysite'):# 加点盐
     h = hashlib.sha256()
@@ -33,6 +35,11 @@ def detail_fuc(request):
             'status': '600',
             'message': '未上传transaction_id'
         }, status=200)
+    if not check_args_valid([transaction_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         transaction_id = signer.unsign_object(transaction_id)
         current_transaction = Transaction.objects.get(id=transaction_id)
@@ -81,6 +88,11 @@ def post_transaction(request:HttpRequest):
             'status': '400',
             'message': '传入的post字段不全',
         }, status=200)
+    if not check_args_valid([mer_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     rec_address_id = request.POST.get('rec_address_id', None)
     signer = TimestampSigner()
     if not rec_address_id:
@@ -169,6 +181,11 @@ def cancel_transaction(request:HttpRequest):
             'status': '400',
             'message': '传入的post字段不全',
         }, status=200)
+    if not check_args_valid([current_tra_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     if not cancel_reason:
         cancel_reason = '用户未说明原因'
     try:
@@ -224,6 +241,11 @@ def commit_transaction_total(request):
             'status': '400',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_identify_code, pay_password]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     pay_password = hash_code(pay_password)
     if current_user.pay_password != pay_password:
         return JsonResponse({
@@ -313,6 +335,11 @@ def commit_transaction_virtual(request):
             'status': '200',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_tra_id, pay_password]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     rec_address_id = request.POST.get('rec_address_id', None)
     signer = TimestampSigner()
 
@@ -388,6 +415,11 @@ def commit_transaction_face(request:HttpRequest):
             'status': '200',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_tra_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     rec_address_id = request.POST.get('rec_address_id', None)
     signer = TimestampSigner()
     try:
@@ -542,11 +574,16 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_tra_id = request.POST.get('tra_id', None)
     current_pay_prove = request.FILES.get('current_pay_prove', None)
-    if not all ((current_tra_id, current_pay_prove)):
+    if not all((current_tra_id, current_pay_prove)):
         return JsonResponse({
-            'status': '200',
+            'status': '400',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_tra_id, current_pay_prove]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     rec_address_id = request.POST.get('rec_address_id', None)
     try:
@@ -578,15 +615,15 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
     #     }, status=200)
     sid = transaction.savepoint()
     try:
-        if current_tra.transaction_merchandise.status != 1:
+        if current_tra.transaction_merchandise.status != 5:
             raise Exception
         current_tra.pay_time = django.utils.timezone.now()
         current_tra.transaction_merchandise.status = 2
         current_tra.transaction_merchandise.save()
-        current_tra.status = 7
+        current_tra.status = 2
         current_tra.pay_method = 2
+        current_tra.pay_prove =current_pay_prove
         current_tra.save()
-        current_user.save()
     except Exception as e:
         transaction.savepoint_rollback(sid)
         return JsonResponse({
@@ -659,6 +696,11 @@ def already_send_transaction(request:HttpRequest):
             'status': '400',
             'message': '订单不存在',
         }, status=200)
+    if not check_args_valid([current_tra_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     try:
         current_tra_id = signer.unsign_object(current_tra_id)
@@ -771,6 +813,11 @@ def comment_transaction(request:HttpRequest):
             'status': '400',
                 'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_tra_id, comment_content, comment_level_mer, comment_level_attitude, comment_level_tra]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     signer = TimestampSigner()
     # try:
     current_tra_id = signer.unsign_object(current_tra_id)
@@ -869,6 +916,11 @@ def transaction_has_problem(request):
             'status': '400',
             'message': 'POST字段不全',
         }, status=200)
+    if not check_args_valid([current_tra_id, problem_type, problem_description]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         signer = TimestampSigner()
         current_tra_id = signer.unsign_object(current_tra_id)

@@ -17,10 +17,12 @@ import user.models
 import order.models
 from utils import myemail_sender, random_utils
 from Final_Project1.decotators.login_required import login_required
+from utils.check_args_valid import *
+from Final_Project1.settings import FILE_URL
 # Create your views here.
 
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 
 
 @login_required()
@@ -33,6 +35,11 @@ def commodity_detail(request):
             'status': '400',
             'message': 'POST信息不全'
         }, status=200)
+    if not check_args_valid([merchandise_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     merchandise_id = signer.unsign_object(merchandise_id)
     try:
         current_merchandise = commodity.models.Merchandise.objects.get(id=merchandise_id)
@@ -147,13 +154,16 @@ def download_handler(request):
         info = signer.unsign_object(info)
         # path = info['path']
         info['path'] = info['path'].replace('\\', '/')
+        try:
+            with open(info['path'], 'rb') as f:
+                pass
+        except:
+            return JsonResponse({
+                'status': '404',
+                'message': '文件路径错误'
+            }, status=200)
         # info['path'] = info['path'].replace('//', '/')
         return FileResponse(open(info['path'], 'rb'))
-        # except:
-        #     return JsonResponse({
-        #         'status': '500',
-        #         'message': '解码错误'
-        #     }, status=403)
     return HttpResponse(status=500)
 
 
@@ -167,6 +177,11 @@ def add_favorite_merchandise_handler(request):
             'status': '300',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([favorite_mer_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         favorite_mer_id = signer.unsign_object(favorite_mer_id)
         favorite_mer = commodity.models.Merchandise.objects.get(id=favorite_mer_id)
@@ -206,6 +221,11 @@ def favorite_merchandise_cancel_handler(request):
             'status': '300',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([favorite_mer_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         favorite_mer_id = signer.unsign_object(favorite_mer_id)
         favorite_mer = commodity.models.Merchandise.objects.get(id=favorite_mer_id)
@@ -245,6 +265,11 @@ def add_favorite_business_handler(request):
             'status': '300',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([favorite_bus_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         signer = TimestampSigner()
         favorite_bus_id = signer.unsign_object(favorite_bus_id)
@@ -254,25 +279,30 @@ def add_favorite_business_handler(request):
             'status': '300',
             'message': 'id解码异常'
         }, status=200)
-    # try:
-    if mer_upload_user.id in current_user.favorite_sellers:
+    if mer_upload_user == current_user:
         return JsonResponse({
             'status': '300',
-            'message': '不能重复收藏'
+            'message': '自己不能收藏自己'
         }, status=200)
-    current_user.favorite_sellers.append(mer_upload_user.id)
-    current_user.save()
-    mer_upload_user.as_favorite_business_number += 1
-    mer_upload_user.save()
-    return JsonResponse({
-        'status': '200',
-        'message': '收藏成功'
-    }, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '300',
-    #         'message': 'id添加异常'
-    #     }, status=200)
+    try:
+        if mer_upload_user.id in current_user.favorite_sellers:
+            return JsonResponse({
+                'status': '300',
+                'message': '不能重复收藏'
+            }, status=200)
+        current_user.favorite_sellers.append(mer_upload_user.id)
+        current_user.save()
+        mer_upload_user.as_favorite_business_number += 1
+        mer_upload_user.save()
+        return JsonResponse({
+            'status': '200',
+            'message': '收藏成功'
+        }, status=200)
+    except:
+        return JsonResponse({
+            'status': '300',
+            'message': 'id添加异常'
+        }, status=200)
 
 
 @login_required()
@@ -285,6 +315,11 @@ def favorite_business_cancel_handler(request):
             'status': '300',
             'message': 'POST字段不全'
         }, status=200)
+    if not check_args_valid([favorite_bus_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
     try:
         signer = TimestampSigner()
         favorite_bus_id = signer.unsign_object(favorite_bus_id)
@@ -294,25 +329,25 @@ def favorite_business_cancel_handler(request):
             'status': '300',
             'message': 'id解码异常'
         }, status=200)
-    # try:
-    if mer_upload_user.id not in current_user.favorite_sellers:
+    try:
+        if mer_upload_user.id not in current_user.favorite_sellers:
+            return JsonResponse({
+                'status': '300',
+                'message': '不在收藏列表'
+            }, status=200)
+        current_user.favorite_sellers.remove(mer_upload_user.id)
+        current_user.save()
+        mer_upload_user.as_favorite_business_number -= 1
+        mer_upload_user.save()
+        return JsonResponse({
+            'status': '200',
+            'message': '删除成功'
+        }, status=200)
+    except:
         return JsonResponse({
             'status': '300',
-            'message': '不在收藏列表'
+            'message': '删除异常'
         }, status=200)
-    current_user.favorite_sellers.remove(mer_upload_user.id)
-    current_user.save()
-    mer_upload_user.as_favorite_business_number -= 1
-    mer_upload_user.save()
-    return JsonResponse({
-        'status': '200',
-        'message': '删除成功'
-    }, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '300',
-    #         'message': 'id添加异常'
-    #     }, status=200)
 
 
 

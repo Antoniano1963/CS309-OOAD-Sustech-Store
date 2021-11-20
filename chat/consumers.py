@@ -105,6 +105,8 @@ class ChatConsumer(WebsocketConsumer):
                                         'from_id': signer.sign_object(user_id),
                                         'to': signer.sign_object(target_id),
                                         'data_type': data_type,
+                                        'my_name':return_dict['my_name'],
+                                        'other_name':return_dict['other_name'],
                                             },
                             }
                         )
@@ -124,6 +126,8 @@ class ChatConsumer(WebsocketConsumer):
                                     'to': signer.sign_object(target_id),
                                     'data_type': data_type,
                                     'dialogue_id': signer.sign_object(dialogue_id),
+                                    'my_name': return_dict['my_name'],
+                                    'other_name': return_dict['other_name'],
                                 })
                         }
                     )

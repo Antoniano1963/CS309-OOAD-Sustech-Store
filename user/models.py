@@ -2,12 +2,12 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.signing import TimestampSigner
 import django
-from Final_Project1.settings import MEDIA_ROOT
+from Final_Project1.settings import MEDIA_ROOT, FILE_URL
 import os
 import django.utils.timezone
 # Create your models here.
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 
 
 class User(models.Model):
@@ -115,6 +115,7 @@ class User(models.Model):
             "total_star": self.stars_for_good*0.5 + self.stars_for_deliver*0.3 + self.stars_for_attitude*0.2,
             'has_header_photo': self.has_header_photo,
             'as_favorite_business_number': self.as_favorite_business_number,
+            'user_status': self.user_status,
         })
 
     def get_simple_info(self):

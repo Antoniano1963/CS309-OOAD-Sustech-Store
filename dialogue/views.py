@@ -39,6 +39,7 @@ from utils import myemail_sender, random_utils
 from Final_Project1.decotators.login_required import login_required
 from django.db import transaction
 from chat.utils import *
+from Final_Project1.settings import FILE_URL
 # Create your views here.
 
 
@@ -257,7 +258,7 @@ def begin_websocket(request):
         }, status=200)
 
 
-file_url = "http://store.sustech.xyz:8080/api/commodity/download/?key="
+file_url = FILE_URL
 @login_required()
 def receive_img(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
