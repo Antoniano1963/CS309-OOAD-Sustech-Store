@@ -52,9 +52,13 @@ def has_login_query(request):
 def login_fuc(request):
     if request.method == 'POST':
         if request.session.get('is_login', False):
+            current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+            signer = TimestampSigner()
             return JsonResponse({
                 'status': '300',
                 'message': '重复登录',
+                'user_id': signer.sign_object(current_user.id),
+                'user_status': current_user.user_status,
             })
         user_email_name = request.POST.get('user_email', None)
         password = request.POST.get('password', None)
@@ -311,6 +315,13 @@ def upload_commodity(request):
                 'message': '地址id错误',
             }, status=200)
     if not check_args_valid([mer_name, mer_description, mer_price, class1_id, class2_id, fineness_id, deliver_price]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
+    if re.match('^[-+]?[0-9]+(\.[0-9]{1,2})?$',mer_price) and re.match('^[-+]?[0-9]+(\.[0-9]{1,2})?$', deliver_price):
+        pass
+    else:
         return JsonResponse({
             'status': '400',
             'message': 'POST字段错误'
@@ -1365,6 +1376,11 @@ def recharge(request):
         'status': '400',
         'message': 'POST字段不全'
     }, status=200)
+    if not re.match('^[-+]?[0-9]+(\.[0-9]{1,2})?$', money_num) :
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段非法'
+        }, status=200)
     if not check_args_valid([money_num]):
         return JsonResponse({
             'status': '400',

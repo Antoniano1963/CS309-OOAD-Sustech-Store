@@ -123,7 +123,13 @@ def release_task_others(request:HttpRequest):
             'message': 'POST字段错误'
         })
     signer = TimestampSigner()
-    price = float(price)
+    try:
+        price = float(price)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段非法'
+        })
     if current_user.money < price:
         return JsonResponse({
             'status': '400',

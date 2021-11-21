@@ -22,8 +22,10 @@ from django.contrib import admin
 from django.conf.urls import include
 from commodity.views import MysearchView
 from Final_Project1 import settings
+from django.conf.urls.static import serve
 urlpatterns = [
-    url('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}, name='static'),
     url('api/login0/', include('user.urls')),
     url('api/commodity/', include('commodity.urls')),
     url('api/transaction/', include('order.urls')),
@@ -33,4 +35,3 @@ urlpatterns = [
     url('api/task/', include('task.urls')),
     url('api/supermanager/', include('supermanager.urls')),
 ]
-urlpatterns += staticfiles_urlpatterns()
