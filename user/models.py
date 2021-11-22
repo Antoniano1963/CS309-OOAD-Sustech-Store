@@ -10,6 +10,74 @@ import django.utils.timezone
 file_url = FILE_URL
 
 
+ADDR_LOCATION = {
+    '荔园': (113.999675, 22.604326),
+    '创园': (114.00181, 22.60337),
+    '慧园': (114.002513, 22.603459),
+    '欣园': (114.002094, 22.607921),
+    '学生宿舍': (113.999213, 22.602276),
+    '湖畔': (113.998629, 22.600111),
+    '九华精舍': (113.999895, 22.600057),
+    '教师公寓': (114.003022, 22.599279),
+    '专家公寓': (114.002931, 22.598749),
+    '风雨操场': (113.999691, 22.598982),
+    '润扬体育馆': (114.004208, 22.601874),
+    '工学院': (113.995415, 22.601013),
+    '南科大中心': (113.998012, 22.596858),
+    '第一科研楼': (113.996789, 22.596174),
+    '第二科研楼': (113.996413, 22.5956),
+    '第一教学楼': (113.997078, 22.595912),
+    '第二教学楼': (113.997003, 22.594446),
+    '台州楼': (113.996204, 22.594713),
+    '检测中心': (113.996923, 22.595243),
+    '行政楼': (113.998124, 22.594124),
+    '琳恩图书馆': (113.998591, 22.595223),
+    '1号门': (113.999562, 22.592578),
+    '2号门': (114.002191, 22.594218),
+    '3号门': (114.005484, 22.596447),
+    '4号门': (114.007544, 22.596897),
+    '5号门': (113.995013, 22.602172),
+    '6号门': (113.996719, 22.596971),
+    '7号门': (113.995238, 22.594485),
+    '8号门': (113.99526, 22.59346),
+    '其他': (0, 0),
+}
+
+ADDR_LOCATION_KEY = {
+    1: (113.999675, 22.604326),
+    2: (114.00181, 22.60337),
+    3: (114.002513, 22.603459),
+    4: (114.002094, 22.607921),
+    5: (113.999213, 22.602276),
+    6: (113.998629, 22.600111),
+    7: (113.999895, 22.600057),
+    8: (114.003022, 22.599279),
+    9: (114.002931, 22.598749),
+    10: (113.999691, 22.598982),
+    11: (114.004208, 22.601874),
+    12: (113.995415, 22.601013),
+    13: (113.998012, 22.596858),
+    14: (113.996789, 22.596174),
+    15: (113.996413, 22.5956),
+    16: (113.997078, 22.595912),
+    17: (113.997003, 22.594446),
+    18: (113.996204, 22.594713),
+    19: (113.996923, 22.595243),
+    20: (113.998124, 22.594124),
+    21: (113.998591, 22.595223),
+    22: (113.999562, 22.592578),
+    23: (114.002191, 22.594218),
+    24: (114.005484, 22.596447),
+    25: (114.007544, 22.596897),
+    26: (113.995013, 22.602172),
+    27: (113.996719, 22.596971),
+    28: (113.995238, 22.594485),
+    29: (113.99526, 22.59346),
+    30: (0, 0),
+}
+
+
+
 class User(models.Model):
     '''用户表'''
     def user_directory_path(instance, filename):
@@ -62,6 +130,8 @@ class User(models.Model):
     has_header_photo = models.BooleanField(default=False)
     problem_number = models.IntegerField(default=0)
     as_favorite_business_number = models.IntegerField(default=0)
+    longitude = models.FloatField(default=0)
+    latitude = models.FloatField(default=0)
     notice_info_unread = ArrayField(
         base_field=models.JSONField(),
         blank=True,
@@ -116,6 +186,8 @@ class User(models.Model):
             'has_header_photo': self.has_header_photo,
             'as_favorite_business_number': self.as_favorite_business_number,
             'user_status': self.user_status,
+            "latitude": self.latitude,
+
         })
 
     def get_simple_info(self):
@@ -146,6 +218,8 @@ class User(models.Model):
             'money': self.money,
             'has_header_photo': self.has_header_photo,
             'as_favorite_business_number': self.as_favorite_business_number,
+            'longitude': self.longitude,
+            "latitude": self.latitude,
         })
 
     def get_ORCode_url(self):
@@ -265,6 +339,8 @@ class Address(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='address_to_user')
     address_role = models.IntegerField(choices=AddressType2.choices, default=1)
     objects = AddressManager()
+    longitude = models.FloatField(default=0, null=True)
+    latitude = models.FloatField(default=0, null=True)
 
     def get_info(self):
         signer = TimestampSigner()
@@ -276,7 +352,9 @@ class Address(models.Model):
             'user_addr': self.user_addr,
             'user_phone': self.user_phone,
             'is_default': self.is_default,
-            'address_type':self.addr_type
+            'address_type':self.addr_type,
+            'longitude': self.longitude,
+            "latitude": self.latitude,
         })
     def get_basic_info(self):
         signer = TimestampSigner()
@@ -287,7 +365,9 @@ class Address(models.Model):
             'user_region': self.region,
             'user_addr': self.user_addr,
             # 'user_phone': self.user_phone,
-            'is_default': self.is_default
+            'is_default': self.is_default,
+            'longitude': self.longitude,
+            "latitude": self.latitude,
         })
 
 

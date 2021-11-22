@@ -222,8 +222,8 @@ def cancel_transaction(request:HttpRequest):
             'message': '服务器错误',
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(sender_id, '商品{}被取消，取消原因为: {}'.format(mer_name, cancel_reason))
-    send_notice(current_user.id, '商品{}的订单取消成功'.format(mer_name))
+    send_notice(sender_id, '商品{}被取消，取消原因为: {}'.format(mer_name, cancel_reason), current_user=current_user, rela_mer=current_mer)
+    send_notice(current_user.id, '商品{}的订单取消成功'.format(mer_name), current_user=current_user, rela_mer=current_mer)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -316,7 +316,8 @@ def commit_transaction_total(request):
     for mer_id in tra_list:
         server_cart_del(mer_id, current_user.id)
     for current_tra in cur_tra_list:
-        send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name))
+        send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name),
+                    current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     conn.delete(key)
     return JsonResponse({
             'status': '200',
@@ -398,7 +399,8 @@ def commit_transaction_virtual(request):
         }, status=200)
     transaction.savepoint_commit(sid)
     server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
-    send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name))
+    send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name),
+                current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
             'status': '200',
             'message': '成功',
@@ -468,7 +470,8 @@ def commit_transaction_face(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
-    send_notice(current_tra.transaction_sender.id, '商品{}被勾下单，支付方式为{}，请尽快发货'.format(current_tra.transaction_merchandise.name, current_tra.pay_method))
+    send_notice(current_tra.transaction_sender.id, '商品{}被勾下单，支付方式为{}，请尽快发货'.format(current_tra.transaction_merchandise.name, current_tra.pay_method),
+                current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
             'status': '200',
             'message': '成功',
@@ -633,7 +636,7 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
     transaction.savepoint_commit(sid)
     server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}被通过二维码下单，请在10Min内确认'.format(current_tra.transaction_merchandise.name))
+                '商品{}被通过二维码下单，请在10Min内确认'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -735,9 +738,9 @@ def already_send_transaction(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_tra.transaction_receiver.id,
-                '商品{}被已被送达，请尽快确认查收'.format(current_tra.transaction_merchandise.name))
+                '商品{}被已被送达，请尽快确认查收'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}被状态以改为送达'.format(current_tra.transaction_merchandise.name))
+                '商品{}被状态以改为送达'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -789,9 +792,9 @@ def already_receive_transaction(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_tra.transaction_receiver.id,
-                '商品{}状态以改为送达'.format(current_tra.transaction_merchandise.name))
+                '商品{}状态以改为送达'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}已被买家收到'.format(current_tra.transaction_merchandise.name))
+                '商品{}已被买家收到'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -895,9 +898,9 @@ def comment_transaction(request:HttpRequest):
     conn.set(key2, str(today_order_list))
     transaction.savepoint_commit(sid)
     send_notice(current_tra.transaction_receiver.id,
-                '商品{}评价成功'.format(current_tra.transaction_merchandise.name))
+                '商品{}评价成功'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}已被买家评价'.format(current_tra.transaction_merchandise.name))
+                '商品{}已被买家评价'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -954,7 +957,7 @@ def transaction_has_problem(request):
                 'message': '订单状态异常',
             }, status=200)
     elif problem_type == 3:
-        if current_tra.pay_method != 2 or current_tra.status != 7:
+        if current_tra.pay_method != 2 or current_tra.status != 2:
             return JsonResponse({
                 'status': '400',
                 'message': '订单状态异常',
@@ -995,9 +998,9 @@ def transaction_has_problem(request):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_tra.transaction_receiver.id,
-                '商品{}所涉及的交易进入问题处理阶段'.format(current_tra.transaction_merchandise.name))
+                '商品{}所涉及的交易进入问题处理阶段'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}所涉及的交易进入问题处理阶段'.format(current_tra.transaction_merchandise.name))
+                '商品{}所涉及的交易进入问题处理阶段'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',

@@ -95,6 +95,7 @@ def handle_problem(request):
                 current_problem.problem_transaction.transaction_sender.problem_number += 1
                 current_problem.problem_transaction.transaction_sender.save()
                 current_problem.problem_status = 2
+                current_problem.handle_date = django.utils.timezone.now()
                 current_problem.save()
                 current_problem.problem_transaction.has_problem = False
                 current_problem.problem_transaction.save()
@@ -106,15 +107,19 @@ def handle_problem(request):
                 }, status=200)
             transaction.savepoint_commit(sid)
             send_notice(payer.id,
-                        '商品{}已经退款处理'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}已经退款处理'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
             send_notice(current_problem.problem_transaction.transaction_sender.id,
-                        '商品{}已经退款处理'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}已经退款处理'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
         else:
             payer = current_problem.problem_transaction.transaction_receiver
             send_notice(payer.id,
-                        '商品{}退款被拒绝'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}退款被拒绝'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
             send_notice(current_problem.problem_transaction.transaction_sender.id,
-                        '商品{}退款被拒绝'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}退款被拒绝'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
 
             sid = transaction.savepoint()
             try:
@@ -124,6 +129,7 @@ def handle_problem(request):
                 current_problem.superuser_log = superuser_log
                 current_problem.handle_superuser = current_user
                 current_problem.problem_user = payer
+                current_problem.handle_date = django.utils.timezone.now()
                 current_problem.problem_status = 2
                 current_problem.save()
             except:
@@ -143,6 +149,8 @@ def handle_problem(request):
                 current_problem.problem_role = problem_role
                 current_problem.superuser_log = superuser_log
                 current_problem.handle_superuser = current_user
+                current_problem.handle_date = django.utils.timezone.now()
+                current_problem.problem_status = 2
                 current_problem.save()
                 current_problem.problem_transaction.has_problem = False
                 current_problem.problem_transaction.save()
@@ -154,9 +162,11 @@ def handle_problem(request):
                 }, status=200)
             transaction.savepoint_commit(sid)
             send_notice(current_problem.problem_transaction.transaction_receiver.id,
-                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
             send_notice(current_problem.problem_transaction.transaction_sender.id,
-                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
         else:
             sid = transaction.savepoint()
             try:
@@ -166,6 +176,8 @@ def handle_problem(request):
                 current_problem.problem_role = problem_role
                 current_problem.superuser_log = superuser_log
                 current_problem.handle_superuser = current_user
+                current_problem.handle_date = django.utils.timezone.now()
+                current_problem.problem_status = 2
                 current_problem.save()
                 current_problem.problem_transaction.has_problem = False
                 current_problem.problem_transaction.save()
@@ -177,9 +189,11 @@ def handle_problem(request):
                 }, status=200)
             transaction.savepoint_commit(sid)
             send_notice(current_problem.problem_transaction.transaction_receiver.id,
-                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
             send_notice(current_problem.problem_transaction.transaction_sender.id,
-                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name))
+                        '商品{}问题处理结果发布'.format(current_problem.problem_transaction.transaction_merchandise.name),
+                        current_user=current_user, rela_mer=current_problem.problem_transaction.transaction_merchandise)
     return JsonResponse({
                 'status': '200',
                 'message': '成功',

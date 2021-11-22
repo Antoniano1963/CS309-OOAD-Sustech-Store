@@ -58,5 +58,6 @@ urlpatterns = [
     url('forget_pay_password_email/', views.forget_pay_password_email),
     url('forget_password_email/', views.forget_password_email),
     url('get_current_user_info/', views.get_current_user_info),
+    url('upload_user_position/', views.upload_user_position),
 
 ]

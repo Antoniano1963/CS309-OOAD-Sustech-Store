@@ -5,6 +5,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.mail import send_mail
 from django.shortcuts import render
 # from login.tasks import send_active_email
+from user.models import ADDR_LOCATION_KEY
 
 from Final_Project1.celery import send_active_email
 # Create your views here.
@@ -216,7 +217,8 @@ def new_register_email(request):
                     'message': '邮箱地址格式错误'
                 })
             code = random_utils.random_str(6, 'upper_str')
-            send_active_email.delay(code, 'a', user_email, type=1)
+            send_active_email.delay(code=code, email=user_email, current_user_name='新注册用户',
+                                    img_url='', price='', rela_mer='', type=1)
             request.session['code'] = code
             return JsonResponse({
                     'status': '200',
@@ -374,7 +376,7 @@ def upload_commodity(request):
     sender_addr.save()
     current_user.uploaded_goods_numbers += 1
     current_user.save()
-    send_notice(current_user.id, "商品{}上传成功".format(new_merchandise.name))
+    send_notice(current_user.id, "商品{}上传成功".format(new_merchandise.name), current_user=current_user, rela_mer=new_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '商品：{}, 用户:{} 上传成功'.format(str(new_merchandise), str(current_user))
@@ -421,7 +423,7 @@ def delete_commodity(request):
             'message': '服务器错误',
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, "商品{}下架成功".format(current_mer.name))
+    send_notice(current_user.id, "商品{}下架成功".format(current_mer.name), current_user=current_user, rela_mer=current_mer)
     return JsonResponse({
         'status': '200',
         'message': "商品{}下架成功".format(current_mer.name)
@@ -892,6 +894,8 @@ def add_address(request):
     region_id = request.POST.get('region_id', None)
     address_type = int(request.POST.get("address_type", 1))
     is_default = request.POST.get('is_default', False)
+    longitude = request.POST.get('longitude', None)
+    latitude = request.POST.get('latitude', None)
     if address_type != 1:
         if current_user.user_status != 2:
             return JsonResponse({
@@ -903,12 +907,35 @@ def add_address(request):
             'status': '400',
             'message': 'POST字段不全'
         }, status=200)
-    # try:
+
     if not check_args_valid([user_name, user_addr, user_phone, region_id]):
+        return JsonResponse({
+            'status': '401',
+            'message': 'POST字段错误'
+        })
+    try:
+        region_id = int(region_id)
+        sys_longitude = ADDR_LOCATION_KEY[region_id][0]
+        sys_latitude = ADDR_LOCATION_KEY[region_id][1]
+    except:
+        return JsonResponse({
+            'status': '402',
+            'message': 'POST字段错误'
+        })
+    try:
+        if longitude and latitude:
+            longitude = float(longitude)
+            latitude = float(latitude)
+        else:
+            longitude = sys_longitude
+            latitude = sys_latitude
+    except:
         return JsonResponse({
             'status': '400',
             'message': 'POST字段错误'
         })
+
+    # try:
     new_addr = user.models.Address.objects.create(
         user_name=user_name,
         user_addr=user_addr,
@@ -916,7 +943,9 @@ def add_address(request):
         user=current_user,
         is_default=is_default,
         region=region_id,
-        addr_type=address_type
+        addr_type=address_type,
+        latitude=latitude,
+        longitude=longitude,
     )
     new_addr.save()
     return JsonResponse({
@@ -1085,7 +1114,7 @@ def activate(request:HttpRequest):
     #     }, status=500)
     transaction.savepoint_commit(sid)
     send_notice(current_user.id,
-                "修改详细资料成功， 现在可以开始购买了")
+                "修改详细资料成功， 现在可以开始购买了", current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '激活成功'
@@ -1196,7 +1225,7 @@ def upload_QR_Code(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_user.id,
-                "上传付款吗成功， 现在可以上传商品了")
+                "上传付款码成功， 现在可以上传商品了", current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '激活成功'
@@ -1445,6 +1474,8 @@ def get_notification_list(request):
     notice_info_list.sort(key=lambda x: x["date"])
     notice_info_list.reverse()
     notification_list.reverse()
+    current_user.notice_info_unread = []
+    current_user.save()
     return JsonResponse({
         'status': '200',
         'message': '查询成功',
@@ -1485,7 +1516,7 @@ def change_password(request):
             'message': '系统错误'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '修改密码成功')
+    send_notice(current_user.id, '修改密码成功', current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '修改成功'
@@ -1524,7 +1555,7 @@ def change_pay_password(request):
             'message': '系统错误'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '修改支付密码成功')
+    send_notice(current_user.id, '修改支付密码成功', current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '修改成功'
@@ -1534,7 +1565,7 @@ def change_pay_password(request):
 @login_required()
 def get_all_comments(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    target_user_id = request.POST.get('target_user_Id', None)
+    target_user_id = request.POST.get('target_user_id', None)
     if not target_user_id:
         return JsonResponse({
             'status': '400',
@@ -1542,9 +1573,11 @@ def get_all_comments(request):
         }, status=200)
     start_position = request.POST.get('start_position', 0)
     end_position = request.POST.get('end_position', 10)
+    signer = TimestampSigner()
     try:
         start_position = int(start_position)
         end_position = int(end_position)
+        target_user_id = signer.unsign_object(target_user_id)
     except:
         return JsonResponse({
             'status': '400',
@@ -1559,8 +1592,8 @@ def get_all_comments(request):
     if return_len >= end_position:
         has_next = True
     return JsonResponse({
-        'status': '300',
-        'message': '原密码错误',
+        'status': '200',
+        'message': '成功',
         'return_List': return_list[start_position:end_position],
         'has_next': has_next,
     }, status=200)
@@ -1671,8 +1704,17 @@ def forget_password_email(request):
                 'status': '500',
                 'message': '邮箱地址格式错误'
             })
+        current_user = user.models.User.objects.filter(email__exact=user_email)
+        if not current_user:
+            return JsonResponse({
+                'status': '400',
+                'message': '邮箱对应用户不存在'
+            })
+        current_user = current_user.all()[0]
         code = random_utils.random_str(6, 'upper_str')
-        send_active_email.delay(code, 'a', user_email, type=3)
+        # send_active_email.delay(code=code, email=user_email, current_user=None, type=3)
+        send_active_email.delay(code=code, email=user_email, current_user_name=current_user.name,
+                                img_url='', price='', rela_mer='', type=3)
         request.session['forget_code'] = code
         request.session['forget_email'] = user_email
         return JsonResponse({
@@ -1737,7 +1779,8 @@ def forget_pay_password_email(request):
         conn.set(key, 1, 50)
     user_email = current_user.email
     code = random_utils.random_str(6, 'upper_str')
-    send_active_email.delay(code, 'a', user_email, type=3)
+    send_active_email.delay(code=code, email=user_email, current_user_name=current_user.name,
+                            img_url='', price='', rela_mer='', type=3)
     request.session['forget_code'] = code
     request.session['forget_pay_email'] = user_email
     return JsonResponse({
@@ -1794,6 +1837,35 @@ def get_current_user_info(request):
         'message': '成功',
         'info': current_user.get_base_info()
     }, status=200)
+
+
+@login_required()
+def upload_user_position(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    longitude = request.POST.get('longitude', None)
+    latitude = request.POST.get('latitude', None)
+    if not all((longitude, latitude)):
+        JsonResponse({
+            'status': '400',
+            'message': 'POST字段不全',
+        }, status=200)
+    try:
+        longitude = float(longitude)
+        latitude = float(latitude)
+    except:
+        JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误',
+        }, status=200)
+    current_user.longitude = longitude
+    current_user.latitude = latitude
+    current_user.save()
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+    }, status=200)
+
+
 
 
 

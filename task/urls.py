@@ -30,4 +30,6 @@ urlpatterns = [
     url('get_all_task_list_up/', views.get_all_task_list_up),
     url('get_all_task_list_tasker/', views.get_all_task_list_tasker),
     url('transaction_relation_task/', views.transaction_relation_task),
+    url('get_position_code/', views.get_position_code),
+
 ]

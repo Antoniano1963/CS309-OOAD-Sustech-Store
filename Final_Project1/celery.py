@@ -8,8 +8,10 @@ from django.utils import timezone
 from django_redis import get_redis_connection
 from redis import Redis
 from celery import Celery
-
-
+from email.header import Header
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from .settings import EMAIL_FROM
 from django.db import transaction
 import django.utils.timezone
@@ -32,59 +34,90 @@ app.now = timezone.now
 
 
 
-# app.conf.beat_schedule = {
-#     'add-every-30-seconds': {
-#         'task': 'cancel_over_ddl_task',
-#         'schedule': 60.0,
-#         'args': ()
-#     },
-#     'add-every-30-seconds2': {
-#         'task': 'cancel_non_pay_tra',
-#         'schedule': 60.0,
-#         'args': ()
-#     },
-#     'add-every-30-seconds3': {
-#         'task': 'create_user_commodity_matrix',
-#         'schedule': 120.0,
-#         'args': ()
-#     },
-#     'add-every-30-seconds4': {
-#         'task': 'create_recommend_list_by_browsing',
-#         'schedule': 60.0,
-#         'args': ()
-#     },
-# }
-# app.conf.timezone = 'UTC'
+app.conf.beat_schedule = {
+    'cancel_over_ddl_task-every-60-seconds': {
+        'task': 'cancel_over_ddl_task',
+        'schedule': 60.0,
+        'args': ()
+    },
+    'cancel_non_pay_tra-every-60-seconds': {
+        'task': 'cancel_non_pay_tra',
+        'schedule': 60.0,
+        'args': ()
+    },
+    'create_user_commodity_matrix-every-86400-seconds': {
+        'task': 'create_user_commodity_matrix',
+        'schedule': 86400.0,
+        'args': ()
+    },
+    'create_recommend_list_by_browsing-every-3600-seconds': {
+        'task': 'create_recommend_list_by_browsing',
+        'schedule': 3660.0,
+        'args': ()
+    },
+}
+app.conf.timezone = 'UTC'
 
-@app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(60.0, cancel_non_pay_tra.s(), name='cancel non-pay transactions every 60 seconds')
-    sender.add_periodic_task(60.0, create_user_commodity_matrix.s(), name='create recommend matrix every 60 seconds')
-    sender.add_periodic_task(60.0, cancel_over_ddl_task.s(), name='cancel over ddl tasks every 60 seconds')
-    sender.add_periodic_task(60.0, create_recommend_list_by_browsing.s(), name='create recommend list by browsing number every 60 second')
+# @app.on_after_configure.connect
+# def setup_periodic_tasks(sender, **kwargs):
+#     sender.add_periodic_task(60.0, cancel_non_pay_tra.s(), name='cancel non-pay transactions every 60 seconds')
+#     sender.add_periodic_task(60.0, create_user_commodity_matrix.s(), name='create recommend matrix every 60 seconds')
+#     sender.add_periodic_task(60.0, cancel_over_ddl_task.s(), name='cancel over ddl tasks every 60 seconds')
+#     sender.add_periodic_task(60.0, create_recommend_list_by_browsing.s(), name='create recommend list by browsing number every 60 second')
 
 
+
+register = ''
+change_pwd = ''
+logo = None
+logo_inv = None
+# with open('Email_template/', 'r') as f:
+#     register = f.read()
+with open('Final_Project1/Email_template/ChangePassword.html', 'r') as f:
+    change_pwd = f.read()
+with open('Final_Project1/Email_template/register.html', 'r') as f:
+    register = f.read()
+with open('Final_Project1/Email_template/notice_mer2.html', 'r') as f:
+    notice_mer = f.read()
+with open('Final_Project1/Email_template/notice_withoutmer.html', 'r') as f:
+    notice_without = f.read()
+# with open('utils/email_templates/logoPure.4b5e7613.png', 'rb') as f:
+#     logo = MIMEImage(f.read())
+#     logo.add_header('Content-ID', '<image1>')
+# with open('utils/email_templates/logoPureInv.png', 'rb') as f:
+#     logo_inv = MIMEImage(f.read())
+#     logo_inv.add_header('Content-ID', '<image2>')
 
 
 @app.task(name = 'send_email', time_limit=15)
-def send_active_email(code, username, email, subject='0.0', type=2, url=None):
+def send_active_email(code, email, current_user_name, img_url, price, mer_name='', rela_mer=None, type=2):
     '''发送激活邮件'''
-    subject = '0.0' # 标题
+    import commodity.models
+    import user.models
+    subject = '来自Sustech Store 的邮件' # 标题
     message = ''
     sender = EMAIL_FROM # 发件人
     receiver = [email] # 收件人列表
-    html_message1 = '<div>Code is {}</div>'.format(code)
+    # html_message1 = '<div>Code is {}</div>'.format(code)
     html_message2 = '<div>通知消息为 is {}</div>'.format(code)
-    html_message3 = '<div>忘记密码的邮件 Code is {}</div>'.format(code)
+    # html_message3 = '<div>忘记密码的邮件 Code is {}</div>'.format(code)
+    print(email)
     # html_message = html_message1 if type ==1 else html_message2
     if type == 1:
-        html_message = html_message1
+        subject = '这是一封来自 Sustech Store 的注册验证邮件，感谢您使用Sustech Store'
+        html_message = register.format(username=current_user_name, code=code)
     elif type == 2:
-        html_message = html_message2
+        subject = '这是一封来自 Sustech Store 通知邮件，感谢您使用Sustech Store'
+        if rela_mer:
+            html_message = notice_mer.format(username=current_user_name, info=code, mer_name=mer_name, mer_photo_url=img_url, price=price)
+        else:
+            html_message = notice_without.format(username=current_user_name, info=code)
     else:
-        html_message = html_message3
+        subject = '这是一封来自 Sustech Store 密码验证邮件，感谢您使用Sustech Store'
+        html_message = change_pwd.format(username=current_user_name, code=code)
+        # html_message = html_message3
     print(code)
-    print(html_message3)
+    print(html_message)
     print(receiver)
     send_mail(subject, message, sender, receiver, html_message=html_message)
 

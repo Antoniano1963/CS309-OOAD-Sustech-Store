@@ -1,3 +1,5 @@
+import base64
+
 from django.http import HttpResponse
 from django.shortcuts import render
 
@@ -139,7 +141,7 @@ def add_token_relationship(user_id, token):
     redis_connect.set(token, user_id)
 
 
-def send_notice(user_id, message):
+def send_notice(user_id, message, current_user=None, rela_mer=None):
     import user.models
     current_user = user.models.User.objects.get(id=user_id)
     signer = TimestampSigner()
@@ -168,4 +170,21 @@ def send_notice(user_id, message):
     )
     if is_user_online(user_id):
         send_message_user(user_id, dict_message)
-    send_active_email.delay(message, 'a', current_user.email, type=2)
+    current_user_name = ''
+    img_url = ''
+    price = ''
+    has_mer = None
+    mer_name = ''
+    if current_user:
+        current_user_name = current_user.name
+    if rela_mer:
+        img_url = rela_mer.get_thumb_url()
+        with open(img_url, 'rb') as f:
+            a = f.read()
+            data = base64.b64encode(a)
+        img_url = data.decode()
+        price = rela_mer.price
+        has_mer = True
+        mer_name = rela_mer.name
+    send_active_email.delay(code=message, email=current_user.email, current_user_name=current_user_name,
+                            img_url=img_url, price=price, mer_name=mer_name, rela_mer=has_mer, type=2)

@@ -155,6 +155,7 @@ class Merchandise(models.Model):
             'browse_number': self.browse_number,
             'as_favorite_number': len(self.who_favourite),
             'mer_status': self.status,
+            'mer_send_addr': self.sender_addr.get_basic_info(),
         })
 
     def get_details(self):
@@ -201,6 +202,7 @@ class Merchandise(models.Model):
             'browse_number': self.browse_number,
             'as_favorite_number': len(self.who_favourite),
             'mer_status': self.status,
+            'mer_send_addr': self.sender_addr.get_basic_info(),
         })
 
 

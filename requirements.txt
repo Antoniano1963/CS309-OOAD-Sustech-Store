@@ -12,3 +12,6 @@ uvicorn[standard]
 django-cachalot
 redis == 3.5.3
 celery == 5.1.2
+gevent==21.8.0
+psycopg2
+pillow

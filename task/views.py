@@ -11,6 +11,8 @@ from chat.utils import *
 from django.db.models import Q
 import datetime
 import django.utils.timezone
+
+from utils import random_utils
 from utils.check_args_valid import *
 # Create your views here.
 
@@ -93,7 +95,7 @@ def release_task_transaction(request:HttpRequest):
             'message': '非法字段'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}发布成功，请尽快发货'.format(name))
+    send_notice(current_user.id, '任务{}发布成功，请尽快发货'.format(name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '创建成功',
@@ -169,7 +171,7 @@ def release_task_others(request:HttpRequest):
             'message': '非法字段'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}发布成功，请尽快发货'.format(name))
+    send_notice(current_user.id, '任务{}发布成功，请尽快发货'.format(name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '创建成功',
@@ -215,7 +217,7 @@ def cancel_task(request:HttpRequest):
             'message': '服务器错误'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}取消成功'.format(task_name))
+    send_notice(current_user.id, '任务{}取消成功'.format(task_name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '取消成功',
@@ -243,35 +245,35 @@ def get_task_list(request):
                 'status': '400',
                 'message': '字段值错误'
             }, status=200)
-    # try:
-    if task_type:
-        mer_list = task.models.Task.objects.get_tasks_by_class(
-            task_type=task_type, sort=sort_method
-        )
-    else:
-        mer_list = task.models.Task.objects.get_tasks_by_class(
-            sort=sort_method
-        )
-    if search_str:
-        mer_list_new = mer_list.filter(Q(name__contains=search_str) |Q(description__contains=search_str))
-    else:
-        mer_list_new = mer_list
-    return_list = []
-    if mer_list_new:
-        for i in mer_list_new.all():
-            return_list.append(i.get_simple_info())
-    start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
-    return JsonResponse({
-            'status': '200',
-            'message': '查询成功',
-            'return_list': return_list[start_position: end_position]
+    try:
+        if task_type:
+            mer_list = task.models.Task.objects.get_tasks_by_class(
+                task_type=task_type, sort=sort_method
+            )
+        else:
+            mer_list = task.models.Task.objects.get_tasks_by_class(
+                sort=sort_method
+            )
+        if search_str:
+            mer_list_new = mer_list.filter(Q(name__contains=search_str) |Q(description__contains=search_str))
+        else:
+            mer_list_new = mer_list
+        return_list = []
+        if mer_list_new:
+            for i in mer_list_new.all():
+                return_list.append(i.get_simple_info())
+        start_position = int(request.POST.get('start_position', 0))
+        end_position = int(request.POST.get('end_position', 10))
+        return JsonResponse({
+                'status': '200',
+                'message': '查询成功',
+                'return_list': return_list[start_position: end_position]
+            }, status=200)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '查询错误'
         }, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '查询错误'
-    #     }, status=200)
 
 @transaction.atomic
 @login_required(status=1)
@@ -327,8 +329,8 @@ def get_task(request:HttpRequest):
             'message': '非法字段'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}领取成功，请尽快处理'.format(current_task.name))
-    send_notice(current_task.upload_user.id, '任务{}被用户{}接受，请尽快处理'.format(current_task.name, current_user.name))
+    send_notice(current_user.id, '任务{}领取成功，请尽快处理'.format(current_task.name), current_user=current_user)
+    send_notice(current_task.upload_user.id, '任务{}被用户{}接受，请尽快处理'.format(current_task.name, current_user.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '领取成功',
@@ -383,9 +385,9 @@ def task_get_object(request:HttpRequest):
     except:
         transaction.savepoint_rollback(sid)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}交予成功'.format(current_task.name))
+    send_notice(current_user.id, '任务{}交予成功'.format(current_task.name), current_user=current_user)
     send_notice(current_task.upload_user.id,
-                '您发布的任务{}物品被人领取，请确认'.format(current_task.name))
+                '您发布的任务{}物品被人领取，请确认'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '提交成功',
@@ -434,9 +436,9 @@ def task_send_object(request:HttpRequest):
     except:
         transaction.savepoint_rollback(sid)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}交予成功'.format(current_task.name))
+    send_notice(current_user.id, '任务{}交予成功'.format(current_task.name), current_user=current_user)
     send_notice(current_task.upload_user.id,
-                '您发布的任务{}物品被人送达，请确认'.format(current_task.name))
+                '您发布的任务{}物品被人送达，请确认'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '提交成功',
@@ -492,9 +494,9 @@ def task_receive_object(request:HttpRequest):
     except:
         transaction.savepoint_rollback(sid)
     transaction.savepoint_commit(sid)
-    send_notice(current_task.sender_user.id, '任务{}已经被确认收货'.format(current_task.name))
+    send_notice(current_task.sender_user.id, '任务{}已经被确认收货'.format(current_task.name), current_user=current_user)
     send_notice(current_user.id,
-                '您发布的任务{}以确认确认'.format(current_task.name))
+                '您发布的任务{}以确认确认'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '提交成功',
@@ -507,7 +509,7 @@ def task_comment(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_task_id = request.POST.get('task_id', None)
     comment_content = request.POST.get('comment_content', None)
-    comment_level = int(request.POST.get('comment_level', None))
+    comment_level = request.POST.get('comment_level', None)
     if not all((current_task_id, comment_content, comment_level)):
         return JsonResponse({
             'status': '400',
@@ -522,6 +524,7 @@ def task_comment(request):
     try:
         current_task_id = signer.unsign_object(current_task_id)
         current_task = task.models.Task.objects.get(id=current_task_id)
+        comment_level = int(comment_level)
     except:
         return JsonResponse({
             'status': '400',
@@ -566,9 +569,9 @@ def task_comment(request):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_user.id,
-                '任务{}评价成功'.format(current_task.name))
+                '任务{}评价成功'.format(current_task.name), current_user=current_user)
     send_notice(current_task.sender_user.id,
-                '任务{}已被评价'.format(current_task.name))
+                '任务{}已被评价'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -1061,3 +1064,45 @@ def get_all_task_list_tasker(request):
         'has_next': has_next
     }, status=200)
 
+
+@login_required()
+def get_position_code(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    task_id = request.POST.get('task_id', None)
+    if not task_id:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST错误'
+        }, status=200)
+    if not check_args_valid([task_id]):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
+    signer = TimestampSigner()
+    try:
+        task_id = signer.unsign_object(task_id)
+        current_task = task.models.Task.objects.get(id=task_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'task不存在'
+        }, status=200)
+    if current_task.task_status == 5 or current_task.task_status == 7:
+        return JsonResponse({
+            'status': '400',
+            'message': 'task状态错误'
+        }, status=200)
+    if current_task.receive_user.id != current_user.id and current_task.upload_user.id != current_user.id:
+        return JsonResponse({
+            'status': '400',
+            'message': '不是你的task'
+        }, status=200)
+    longitude = current_task.sender_user.longitude
+    latitude = current_task.sender_user.latitude
+    return JsonResponse({
+            'status': '200',
+            'message': '成功',
+            'longitude': longitude,
+            'latitude': latitude,
+        }, status=200)
