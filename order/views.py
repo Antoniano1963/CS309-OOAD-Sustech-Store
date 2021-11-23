@@ -134,6 +134,7 @@ def post_transaction(request:HttpRequest):
             'status': '400',
             'message': '传入的id有误',
         }, status=200)
+
     sid = transaction.savepoint()
     try:
         new_transaction = Transaction.objects.create(
@@ -163,6 +164,9 @@ def post_transaction(request:HttpRequest):
             'status': '400',
             'message': '创建订单失败',
         }, status=200)
+    transaction.savepoint_commit(sid)
+    if current_sender.credit_points < 6:
+        send_notice(current_user.id, '商家信誉不足，推荐使用虚拟货币进行支付', current_user=current_user, rela_mer=current_mer)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -222,7 +226,7 @@ def cancel_transaction(request:HttpRequest):
             'message': '服务器错误',
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(sender_id, '商品{}被取消，取消原因为: {}'.format(mer_name, cancel_reason), current_user=current_user, rela_mer=current_mer)
+    send_notice(sender_id, '商品{}的订单被取消，取消原因为:{}'.format(mer_name, cancel_reason), current_user=current_user, rela_mer=current_mer)
     send_notice(current_user.id, '商品{}的订单取消成功'.format(mer_name), current_user=current_user, rela_mer=current_mer)
     return JsonResponse({
         'status': '200',
@@ -234,6 +238,11 @@ def cancel_transaction(request:HttpRequest):
 @login_required()
 def commit_transaction_total(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    if current_user.credit_points < 0:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，支付被禁止',
+        }, status=200)
     current_identify_code = request.POST.get('current_identify_code', None)
     pay_password = request.POST.get('pay_password', None)
     if not all((current_identify_code, pay_password)):
@@ -318,6 +327,8 @@ def commit_transaction_total(request):
     for current_tra in cur_tra_list:
         send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name),
                     current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+        send_notice(current_user.id, '感谢您在本平台购买商品{},将提醒卖家尽快发货'.format(current_tra.transaction_merchandise.name),
+                    current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     conn.delete(key)
     return JsonResponse({
             'status': '200',
@@ -329,6 +340,11 @@ def commit_transaction_total(request):
 @login_required()
 def commit_transaction_virtual(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    if current_user.credit_points < 0:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，支付被禁止',
+        }, status=200)
     current_tra_id = request.POST.get('tra_id', None)
     pay_password = request.POST.get('pay_password', None)
     if not all((current_tra_id, pay_password)):
@@ -401,6 +417,8 @@ def commit_transaction_virtual(request):
     server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
     send_notice(current_tra.transaction_sender.id, '商品{}被支付，请尽快发货'.format(current_tra.transaction_merchandise.name),
                 current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+    send_notice(current_user.id, '感谢您在本平台购买商品{},将提醒卖家尽快发货'.format(current_tra.transaction_merchandise.name),
+                current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
             'status': '200',
             'message': '成功',
@@ -412,6 +430,16 @@ def commit_transaction_virtual(request):
 def commit_transaction_face(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_tra_id = request.POST.get('tra_id', None)
+    if current_user.credit_points < 0:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，支付被禁止',
+        }, status=200)
+    if current_user.credit_points < 6:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，只支持虚拟货币',
+        }, status=200)
     if not current_tra_id:
         return JsonResponse({
             'status': '200',
@@ -470,7 +498,9 @@ def commit_transaction_face(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
-    send_notice(current_tra.transaction_sender.id, '商品{}被勾下单，支付方式为{}，请尽快发货'.format(current_tra.transaction_merchandise.name, current_tra.pay_method),
+    send_notice(current_tra.transaction_sender.id, '商品{}被{}下单，支付方式为面对面支付，请尽快发货'.format(current_tra.transaction_merchandise.name, current_user.name),
+                current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+    send_notice(current_user.id, '感谢您在本平台购买商品{},将提醒卖家尽快发货'.format(current_tra.transaction_merchandise.name),
                 current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
             'status': '200',
@@ -577,6 +607,16 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_tra_id = request.POST.get('tra_id', None)
     current_pay_prove = request.FILES.get('current_pay_prove', None)
+    if current_user.credit_points < 0:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，支付被禁止',
+        }, status=200)
+    if current_user.credit_points < 6:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，只支持虚拟货币',
+        }, status=200)
     if not all((current_tra_id, current_pay_prove)):
         return JsonResponse({
             'status': '400',
@@ -637,6 +677,8 @@ def commit_transaction_QR_code_commit(request:HttpRequest):
     server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
     send_notice(current_tra.transaction_sender.id,
                 '商品{}被通过二维码下单，请在10Min内确认'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+    send_notice(current_user.id, '感谢您在本平台购买商品{},将提醒卖家尽快发货'.format(current_tra.transaction_merchandise.name),
+                current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -740,7 +782,7 @@ def already_send_transaction(request:HttpRequest):
     send_notice(current_tra.transaction_receiver.id,
                 '商品{}被已被送达，请尽快确认查收'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}被状态以改为送达'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+                '商品{}被状态以改为送达,将等待买家确认'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -749,7 +791,7 @@ def already_send_transaction(request:HttpRequest):
 
 @transaction.atomic
 @login_required()
-def already_receive_transaction(request:HttpRequest):
+def already_receive_transaction(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     current_tra_id = request.POST.get('current_tra_id', None)
     if not current_tra_id:
@@ -792,9 +834,9 @@ def already_receive_transaction(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_tra.transaction_receiver.id,
-                '商品{}状态以改为送达'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+                '商品{}确认收货成功'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     send_notice(current_tra.transaction_sender.id,
-                '商品{}已被买家收到'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
+                '商品{}已被买家确认收货，将等待买家评价'.format(current_tra.transaction_merchandise.name), current_user=current_user, rela_mer=current_tra.transaction_merchandise)
     return JsonResponse({
         'status': '200',
         'message': '成功',
@@ -822,17 +864,17 @@ def comment_transaction(request:HttpRequest):
             'message': 'POST字段错误'
         })
     signer = TimestampSigner()
-    # try:
-    current_tra_id = signer.unsign_object(current_tra_id)
-    current_tra = Transaction.objects.get(id=current_tra_id)
-    comment_level_tra = int(float(comment_level_tra))
-    comment_level_mer = int(float(comment_level_mer))
-    comment_level_attitude = int(float(comment_level_attitude))
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '订单异常',
-    #     }, status=200)
+    try:
+        current_tra_id = signer.unsign_object(current_tra_id)
+        current_tra = Transaction.objects.get(id=current_tra_id)
+        comment_level_tra = int(float(comment_level_tra))
+        comment_level_mer = int(float(comment_level_mer))
+        comment_level_attitude = int(float(comment_level_attitude))
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '订单异常',
+        }, status=200)
     if current_tra.status != 4:
         return JsonResponse({
             'status': '400',
@@ -963,16 +1005,27 @@ def transaction_has_problem(request):
                 'message': '订单状态异常',
             }, status=200)
     elif problem_type == 4:
-        if current_tra.status < 2 :
+        if current_tra.status < 2:
             return JsonResponse({
                 'status': '400',
                 'message': '订单状态异常',
             }, status=200)
     elif problem_type == 5:
-        if current_tra.status < 2:
+        if current_tra.status != 5:
             return JsonResponse({
                 'status': '400',
                 'message': '订单状态异常',
+            }, status=200)
+    else:
+        if current_tra.status == 6:
+            return JsonResponse({
+                'status': '400',
+                'message': '订单状态异常',
+            }, status=200)
+        if problem_type != 6:
+            return JsonResponse({
+                'status': '400',
+                'message': '问题类型异常',
             }, status=200)
     sid = transaction.savepoint()
     try:

@@ -126,12 +126,14 @@ class User(models.Model):
     comment_number = models.IntegerField(default=0)
     SID = models.IntegerField(default=0)
     stars_for_task = models.IntegerField(default=5)
+    over_ddl_task_number = models.IntegerField(default=0)
     comment_number_for_task = models.IntegerField(default=0)
     has_header_photo = models.BooleanField(default=False)
     problem_number = models.IntegerField(default=0)
     as_favorite_business_number = models.IntegerField(default=0)
     longitude = models.FloatField(default=0)
     latitude = models.FloatField(default=0)
+    credit_points = models.FloatField(default=10)
     notice_info_unread = ArrayField(
         base_field=models.JSONField(),
         blank=True,
@@ -186,7 +188,8 @@ class User(models.Model):
             'has_header_photo': self.has_header_photo,
             'as_favorite_business_number': self.as_favorite_business_number,
             'user_status': self.user_status,
-            "latitude": self.latitude,
+            'credit_points': self.credit_points,
+            # "latitude": self.latitude,
 
         })
 
@@ -220,6 +223,7 @@ class User(models.Model):
             'as_favorite_business_number': self.as_favorite_business_number,
             'longitude': self.longitude,
             "latitude": self.latitude,
+            'credit_points': self.credit_points,
         })
 
     def get_ORCode_url(self):

@@ -1,3 +1,5 @@
+import re
+
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import render
 from Final_Project1.decotators.login_required import login_required
@@ -21,6 +23,11 @@ from utils.check_args_valid import *
 @login_required(status=1)
 def release_task_transaction(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    if current_user.credit_points < 6:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，不能发布task',
+        }, status=200)
     tra_id = request.POST.get('tra_id', None)
     ddl_time = request.POST.get('ddl_time', None)
     price = request.POST.get('price', None)
@@ -35,14 +42,24 @@ def release_task_transaction(request:HttpRequest):
         return JsonResponse({
             'status': '400',
             'message': 'POST字段错误'
-        })
+        }, status=200)
     signer = TimestampSigner()
+    if not re.match('^[0-9]+(\.[0-9]{1,2})?$', price):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        }, status=200)
     try:
         price = float(price)
     except:
         JsonResponse({
             'status': '400',
             'message': '字段异常',
+        }, status=200)
+    if price < 0:
+        JsonResponse({
+            'status': '400',
+            'message': '钱数为负数',
         }, status=200)
     if current_user.money < price:
         return JsonResponse({
@@ -95,7 +112,7 @@ def release_task_transaction(request:HttpRequest):
             'message': '非法字段'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}发布成功，请尽快发货'.format(name), current_user=current_user)
+    send_notice(current_user.id, '任务{}发布成功'.format(name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '创建成功',
@@ -107,6 +124,11 @@ def release_task_transaction(request:HttpRequest):
 @login_required(status=1)
 def release_task_others(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    if current_user.credit_points < 6:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，不能发布task',
+        }, status=200)
     ddl_time = request.POST.get('ddl_time', None)
     price = request.POST.get('price', None)
     description = request.POST.get('description', None)
@@ -125,6 +147,11 @@ def release_task_others(request:HttpRequest):
             'message': 'POST字段错误'
         })
     signer = TimestampSigner()
+    if not re.match('^[0-9]+(\.[0-9]{1,2})?$', price):
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        }, status=200)
     try:
         price = float(price)
     except:
@@ -132,6 +159,11 @@ def release_task_others(request:HttpRequest):
             'status': '400',
             'message': 'POST字段非法'
         })
+    if price < 0:
+        JsonResponse({
+            'status': '400',
+            'message': '钱数为负数',
+        }, status=200)
     if current_user.money < price:
         return JsonResponse({
             'status': '400',
@@ -171,7 +203,7 @@ def release_task_others(request:HttpRequest):
             'message': '非法字段'
         }, status=200)
     transaction.savepoint_commit(sid)
-    send_notice(current_user.id, '任务{}发布成功，请尽快发货'.format(name), current_user=current_user)
+    send_notice(current_user.id, '任务{}发布成功'.format(name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '创建成功',
@@ -182,7 +214,7 @@ def release_task_others(request:HttpRequest):
 
 @transaction.atomic
 @login_required(status=1)
-def cancel_task(request:HttpRequest):
+def cancel_task(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     task_id = request.POST.get('task_id', None)
     if not task_id:
@@ -279,6 +311,11 @@ def get_task_list(request):
 @login_required(status=1)
 def get_task(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    if current_user.credit_points < 6:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，不能接取task',
+        }, status=200)
     task_id = request.POST.get('task_id', None)
     if not task_id:
         return JsonResponse({
@@ -330,7 +367,7 @@ def get_task(request:HttpRequest):
         }, status=200)
     transaction.savepoint_commit(sid)
     send_notice(current_user.id, '任务{}领取成功，请尽快处理'.format(current_task.name), current_user=current_user)
-    send_notice(current_task.upload_user.id, '任务{}被用户{}接受，请尽快处理'.format(current_task.name, current_user.name), current_user=current_user)
+    send_notice(current_task.upload_user.id, '任务{}被用户{}接受，请尽快与送货者联系'.format(current_task.name, current_user.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '领取成功',
@@ -387,7 +424,7 @@ def task_get_object(request:HttpRequest):
     transaction.savepoint_commit(sid)
     send_notice(current_user.id, '任务{}交予成功'.format(current_task.name), current_user=current_user)
     send_notice(current_task.upload_user.id,
-                '您发布的任务{}物品被人领取，请确认'.format(current_task.name), current_user=current_user)
+                '您发布的任务{}物品被送货者领取，请确认状态变换'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '提交成功',
@@ -438,7 +475,7 @@ def task_send_object(request:HttpRequest):
     transaction.savepoint_commit(sid)
     send_notice(current_user.id, '任务{}交予成功'.format(current_task.name), current_user=current_user)
     send_notice(current_task.upload_user.id,
-                '您发布的任务{}物品被人送达，请确认'.format(current_task.name), current_user=current_user)
+                '您发布的任务{}物品被人送达，请确认状态变换'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '提交成功',
@@ -494,9 +531,9 @@ def task_receive_object(request:HttpRequest):
     except:
         transaction.savepoint_rollback(sid)
     transaction.savepoint_commit(sid)
-    send_notice(current_task.sender_user.id, '任务{}已经被确认收货'.format(current_task.name), current_user=current_user)
+    send_notice(current_task.sender_user.id, '任务{}已经被确认收货,将转入评价阶段'.format(current_task.name), current_user=current_user)
     send_notice(current_user.id,
-                '您发布的任务{}以确认确认'.format(current_task.name), current_user=current_user)
+                '您发布的任务{}已经确认收货'.format(current_task.name), current_user=current_user)
     return JsonResponse({
         'status': '200',
         'message': '提交成功',

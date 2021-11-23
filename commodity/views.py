@@ -396,7 +396,7 @@ def search_by_class_label_all(request):
                                            | Q(class_level_2__name_str__contains=search_str))
 
         else:
-            mer_list = commodity.models.Merchandise.objects.filter(Q(name__contains=search_str) |Q(description__contains=search_str)
+            mer_list = commodity.models.Merchandise.objects.filter(status__exact=1).filter(Q(name__contains=search_str) |Q(description__contains=search_str)
                                            | Q(class_level_1__name_str__contains=search_str)
                                            | Q(class_level_2__name_str__contains=search_str))
             if sort_method:

@@ -52,7 +52,7 @@ app.conf.beat_schedule = {
     },
     'create_recommend_list_by_browsing-every-3600-seconds': {
         'task': 'create_recommend_list_by_browsing',
-        'schedule': 3660.0,
+        'schedule': 3600.0,
         'args': ()
     },
 }

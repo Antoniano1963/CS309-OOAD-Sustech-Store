@@ -23,7 +23,7 @@ class Transaction(models.Model):
         WAITDELIVER = (2, '等待发货')
         WAITRECEIVING = (3, '等待收货')
         WAITCOMMENT = (4, '等待评价')
-        FINISH = (5, '已送达')
+        FINISH = (5, '已完成')
         DISPUTE = (6, '有争议')
         QRWAIT = (7, '二维码支付等待确认')
         SOVED = (8, '争议解决')
@@ -129,7 +129,8 @@ class TransactionProblem(models.Model):
         TYPE2 = (2, '线下交易冲突')
         TYPE3 = (3, '二维码未收款')
         TYPE4 = (4, '恶意未发货')
-        TYPE5 = (5, '卖家问题')
+        TYPE5 = (5, '恶意评价')
+        TYPE6 = (6, '其他')
     class ProblemRole(models.IntegerChoices):
         USER = (1, '用户')
         BUSINESS = (2, '卖家')

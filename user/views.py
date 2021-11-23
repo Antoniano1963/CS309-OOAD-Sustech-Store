@@ -280,6 +280,11 @@ def mobile_login(request):
 @login_required(status=2)
 def upload_commodity(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    if current_user.credit_points < 4:
+        return JsonResponse({
+            'status': '400',
+            'message': '信誉分不足，不能上传商品',
+        }, status=200)
     mer_name = request.POST.get('mer_name', None)
     mer_description = request.POST.get('mer_description', None)
     mer_price = request.POST.get('mer_price', None)
@@ -321,9 +326,22 @@ def upload_commodity(request):
             'status': '400',
             'message': 'POST字段错误'
         })
-    if re.match('^[-+]?[0-9]+(\.[0-9]{1,2})?$',mer_price) and re.match('^[-+]?[0-9]+(\.[0-9]{1,2})?$', deliver_price):
+    if re.match('^[0-9]+(\.[0-9]{1,2})?$',mer_price) and re.match('^[0-9]+(\.[0-9]{1,2})?$', deliver_price):
         pass
     else:
+        return JsonResponse({
+            'status': '400',
+            'message': 'POST字段错误'
+        })
+    try:
+        mer_price = float(mer_price)
+        deliver_price = float(deliver_price)
+        if mer_price < 0 or deliver_price < 0:
+            return JsonResponse({
+                'status': '400',
+                'message': '加个为负数'
+            })
+    except:
         return JsonResponse({
             'status': '400',
             'message': 'POST字段错误'
@@ -336,46 +354,51 @@ def upload_commodity(request):
         image3 = request.FILES['image3']
     except:
         image3 = None
-    # try:
-
-    new_merchandise = commodity.models.Merchandise.objects.create(
-        name=mer_name,
-        description=mer_description,
-        price=mer_price,
-        upload_user=current_user,
-        class_level_1_id=class1_id,
-        class_level_2_id=class2_id,
-        fineness=fineness_id,
-        sender_addr=sender_addr,
-        deliver_price=deliver_price,
-        allow_face_trade=allow_face_trade,
+    try:
+        new_merchandise = commodity.models.Merchandise.objects.create(
+            name=mer_name,
+            description=mer_description,
+            price=mer_price,
+            upload_user=current_user,
+            class_level_1_id=class1_id,
+            class_level_2_id=class2_id,
+            fineness=fineness_id,
+            sender_addr=sender_addr,
+            deliver_price=deliver_price,
+            allow_face_trade=allow_face_trade,
+            )
+    except:
+        return JsonResponse({
+            'status': '600',
+            'message': '重复或键值错误'
+        }, status=200)
+    try:
+        reopen_img1 = Image.open(image1)
+        reopen_img1.thumbnail((200, 100), Image.ANTIALIAS)
+        buffer = BytesIO()
+        reopen_img1.save(buffer, format='PNG')#file, field_name, name, content_type, size, charset, content_type_extra=None
+        thumb_img = InMemoryUploadedFile(
+            file = buffer,
+            field_name='thumb',
+            name="thumb.png",
+            content_type='image/jpeg',
+            size=buffer.tell(),
+            charset=None
         )
-    # except:
-    #     return JsonResponse({
-    #         'status': '600',
-    #         'message': '重复或键值错误'
-    #     }, status=200)
-    reopen_img1 = Image.open(image1)
-    reopen_img1.thumbnail((200, 100), Image.ANTIALIAS)
-    buffer = BytesIO()
-    reopen_img1.save(buffer, format='PNG')#file, field_name, name, content_type, size, charset, content_type_extra=None
-    thumb_img = InMemoryUploadedFile(
-        file = buffer,
-        field_name='thumb',
-        name="thumb.png",
-        content_type='image/jpeg',
-        size=buffer.tell(),
-        charset=None
-    )
-    new_merchandise.image1 = image1
-    new_merchandise.image2 = image2
-    new_merchandise.image3 = image3
-    new_merchandise.thumb = thumb_img
-    new_merchandise.save()
-    sender_addr.relate_number = sender_addr.relate_number + 1
-    sender_addr.save()
-    current_user.uploaded_goods_numbers += 1
-    current_user.save()
+        new_merchandise.image1 = image1
+        new_merchandise.image2 = image2
+        new_merchandise.image3 = image3
+        new_merchandise.thumb = thumb_img
+        new_merchandise.save()
+        sender_addr.relate_number = sender_addr.relate_number + 1
+        sender_addr.save()
+        current_user.uploaded_goods_numbers += 1
+        current_user.save()
+    except:
+        return JsonResponse({
+            'status': '500',
+            'message': '键值错误'
+        }, status=200)
     send_notice(current_user.id, "商品{}上传成功".format(new_merchandise.name), current_user=current_user, rela_mer=new_merchandise)
     return JsonResponse({
         'status': '200',
@@ -913,6 +936,11 @@ def add_address(request):
             'status': '401',
             'message': 'POST字段错误'
         })
+    if not re.match(r'1[3,4,5,7,8]\d{9}',user_phone):
+        return JsonResponse({
+            'status': '500',
+            'message': '非法手机号'
+        })
     try:
         region_id = int(region_id)
         sys_longitude = ADDR_LOCATION_KEY[region_id][0]
@@ -935,28 +963,28 @@ def add_address(request):
             'message': 'POST字段错误'
         })
 
-    # try:
-    new_addr = user.models.Address.objects.create(
-        user_name=user_name,
-        user_addr=user_addr,
-        user_phone=user_phone,
-        user=current_user,
-        is_default=is_default,
-        region=region_id,
-        addr_type=address_type,
-        latitude=latitude,
-        longitude=longitude,
-    )
-    new_addr.save()
-    return JsonResponse({
-        'status': '200',
-        'message': '成功'
-    }, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '创建失败'
-    #     }, status=200)
+    try:
+        new_addr = user.models.Address.objects.create(
+            user_name=user_name,
+            user_addr=user_addr,
+            user_phone=user_phone,
+            user=current_user,
+            is_default=is_default,
+            region=region_id,
+            addr_type=address_type,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        new_addr.save()
+        return JsonResponse({
+            'status': '200',
+            'message': '成功'
+        }, status=200)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '创建失败'
+        }, status=200)
 
 
 @login_required(status=1)
@@ -993,7 +1021,13 @@ def delete_address(request):
             'message': '关联mer',
             'return_mer_list': return_mer_list
         }, status=200)
-    current_addr.delete()
+    try:
+        current_addr.delete()
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '系统错误',
+        }, status=200)
     return JsonResponse({
         'status': '200',
         'message': '成功'
@@ -1084,34 +1118,34 @@ def activate(request:HttpRequest):
             'message': 'POST字段错误'
         })
     sid = transaction.savepoint()
-    # try:
-    signer = TimestampSigner()
-    # addr_id = signer.unsign_object(addr_id)
-    # cur_addr = user.models.Address.objects.filter(id__exact=addr_id)
-    # if not cur_addr:
-    #     return JsonResponse({
-    #     'status': '400',
-    #     'message': '用户没有地址'
-    # }, status=200)
-    # if cur_addr.all()[0].addr_type == 2:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '地址类型错误'
-    #     }, status=200)
-    current_user.real_name = real_name
-    current_user.user_identify = user_identify
-    current_user.self_description = self_description
-    current_user.user_status = 1
-    current_user.pay_password = hash_code(pay_password)
-    # cur_addr.is_default = True
-    # cur_addr.save()
-    current_user.save()
-    # except:
-    #     transaction.savepoint_rollback(sid)
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '更改失败'
-    #     }, status=500)
+    try:
+        signer = TimestampSigner()
+        # addr_id = signer.unsign_object(addr_id)
+        # cur_addr = user.models.Address.objects.filter(id__exact=addr_id)
+        # if not cur_addr:
+        #     return JsonResponse({
+        #     'status': '400',
+        #     'message': '用户没有地址'
+        # }, status=200)
+        # if cur_addr.all()[0].addr_type == 2:
+        #     return JsonResponse({
+        #         'status': '400',
+        #         'message': '地址类型错误'
+        #     }, status=200)
+        current_user.real_name = real_name
+        current_user.user_identify = user_identify
+        current_user.self_description = self_description
+        current_user.user_status = 1
+        current_user.pay_password = hash_code(pay_password)
+        # cur_addr.is_default = True
+        # cur_addr.save()
+        current_user.save()
+    except:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '更改失败'
+        }, status=500)
     transaction.savepoint_commit(sid)
     send_notice(current_user.id,
                 "修改详细资料成功， 现在可以开始购买了", current_user=current_user)
@@ -1405,7 +1439,7 @@ def recharge(request):
         'status': '400',
         'message': 'POST字段不全'
     }, status=200)
-    if not re.match('^[-+]?[0-9]+(\.[0-9]{1,2})?$', money_num) :
+    if not re.match('^[0-9]+(\.[0-9]{1,2})?$', money_num) :
         return JsonResponse({
             'status': '400',
             'message': 'POST字段非法'
@@ -1417,6 +1451,11 @@ def recharge(request):
         })
     try:
         money_num = float(money_num)
+        if money_num < 0:
+            return JsonResponse({
+            'status': '400',
+            'message': '钱数不能为负',
+            })
     except:
         return JsonResponse({
             'status': '500',
@@ -1604,9 +1643,13 @@ def get_all_comments(request):
 def get_recommend_list(request):
     mer_list = commodity.models.Merchandise.objects.filter(status=1).all()
     if len(mer_list) < 10:
+        return_list = []
+        for mer in mer_list:
+            return_list.append(mer.get_simple_info())
         return JsonResponse({
-            'status': '400',
-            'message': '商品数不足',
+            'status': '200',
+            'message': '商品数不足,返回全部商品',
+            'return_list': return_list,
         }, status=200)
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     key = "recommend_list"

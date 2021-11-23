@@ -64,81 +64,81 @@ def start_dialogue(request):
         }, status=200)
     current_dialogue1 = None
     current_dialogue2 = None
-    # try:
-    current_dialogue1 = dialogue.models.Dialogue.objects.filter(dialogue_type__exact=1).filter(
-        dialogue_user1=current_user).filter(dialogue_user2=current_user2)
+    try:
+        current_dialogue1 = dialogue.models.Dialogue.objects.filter(dialogue_type__exact=1).filter(
+            dialogue_user1=current_user).filter(dialogue_user2=current_user2)
 
-    # except:
-    #     pass
-    # try:
-    current_dialogue2 = dialogue.models.Dialogue.objects.filter(dialogue_type__exact=1).filter(
-    dialogue_user2=current_user).filter(dialogue_user1=current_user2)
-    # except:
-    #     pass
-    current_dialogue = None
-    if current_dialogue1:
-        current_dialogue = current_dialogue1.all()[0]
-    if current_dialogue2:
-        current_dialogue = current_dialogue2.all()[0]
-    if current_dialogue:
-        redis_connect = get_redis_connection('default')
-        redis_connect.set('dialogue_{}'.format(current_dialogue.id), str([current_dialogue.dialogue_user1.id,
-                                                                      current_dialogue.dialogue_user2.id]))
-        # order_list_u = redis_connect.get("session_{}".format(current_dialogue.dialogue_user.id))
-        # if not order_list_u:
-        #     order_list_u = []
-        # else:
-        #     order_list_u = literal_eval(order_list_u)
-        # if current_dialogue.id not in order_list_u:
-        #     order_list_u.append(current_dialogue.id)
-        # order_list_b = redis_connect.get("session_{}".format(current_dialogue.dialogue_business.id))
-        # if not order_list_b:
-        #     order_list_b = []
-        # else:
-        #     order_list_b = literal_eval(order_list_b)
-        # if current_dialogue.id not in order_list_b:
-        #     order_list_b.append(current_dialogue.id)
-        # redis_connect.set("session_{}".format(current_dialogue.dialogue_user.id), str(order_list_u))
-        # redis_connect.set("session_{}".format(current_dialogue.dialogue_business.id), str(order_list_b))
+        # except:
+        #     pass
+        # try:
+        current_dialogue2 = dialogue.models.Dialogue.objects.filter(dialogue_type__exact=1).filter(
+        dialogue_user2=current_user).filter(dialogue_user1=current_user2)
+        # except:
+        #     pass
+        current_dialogue = None
+        if current_dialogue1:
+            current_dialogue = current_dialogue1.all()[0]
+        if current_dialogue2:
+            current_dialogue = current_dialogue2.all()[0]
+        if current_dialogue:
+            redis_connect = get_redis_connection('default')
+            redis_connect.set('dialogue_{}'.format(current_dialogue.id), str([current_dialogue.dialogue_user1.id,
+                                                                          current_dialogue.dialogue_user2.id]))
+            # order_list_u = redis_connect.get("session_{}".format(current_dialogue.dialogue_user.id))
+            # if not order_list_u:
+            #     order_list_u = []
+            # else:
+            #     order_list_u = literal_eval(order_list_u)
+            # if current_dialogue.id not in order_list_u:
+            #     order_list_u.append(current_dialogue.id)
+            # order_list_b = redis_connect.get("session_{}".format(current_dialogue.dialogue_business.id))
+            # if not order_list_b:
+            #     order_list_b = []
+            # else:
+            #     order_list_b = literal_eval(order_list_b)
+            # if current_dialogue.id not in order_list_b:
+            #     order_list_b.append(current_dialogue.id)
+            # redis_connect.set("session_{}".format(current_dialogue.dialogue_user.id), str(order_list_u))
+            # redis_connect.set("session_{}".format(current_dialogue.dialogue_business.id), str(order_list_b))
+            return JsonResponse({
+                'status': '201',
+                'message': '对话已存在',
+                'dialogue_id': signer.sign_object(current_dialogue.id)
+            }, status=200)
+        else:
+            new_dialogue = dialogue.models.Dialogue.objects.create(
+                dialogue_user1=current_user,
+                dialogue_user2=current_user2,
+                # dialogue_merchandise_id=merchandise_id
+            )
+            new_dialogue.save()
+            redis_connect = get_redis_connection('default')
+            redis_connect.set('dialogue_{}'.format(new_dialogue.id), str([new_dialogue.dialogue_user1.id,
+                                                                              new_dialogue.dialogue_user2.id]))
+            # order_list_u = redis_connect.get("session_{}".format(new_dialogue.dialogue_user.id))
+            # if not order_list_u:
+            #     order_list_u = []
+            # else:
+            #     order_list_u = literal_eval(order_list_u)
+            # order_list_u.append(new_dialogue.id)
+            # order_list_b = redis_connect.get("session_{}".format(new_dialogue.dialogue_business.id))
+            # if not order_list_b:
+            #     order_list_b = []
+            # else:
+            #     order_list_b = literal_eval(order_list_b)
+            # order_list_b.append(new_dialogue.id)
+            # redis_connect.set("session_{}".format(new_dialogue.dialogue_business.id), str(order_list_u))
+            # redis_connect.set("session_{}".format(new_dialogue.dialogue_business.id), str(order_list_b))
+            return JsonResponse({
+                'status': '200',
+                'message': '对话创建成功',
+                'dialogue_id': signer.sign_object(new_dialogue.id)
+            }, status=200)
+    except:
         return JsonResponse({
-            'status': '201',
-            'message': '对话已存在',
-            'dialogue_id': signer.sign_object(current_dialogue.id)
+            'status': '400',
+            'message': 'id错误，创建失败'
         }, status=200)
-    else:
-        new_dialogue = dialogue.models.Dialogue.objects.create(
-            dialogue_user1=current_user,
-            dialogue_user2=current_user2,
-            # dialogue_merchandise_id=merchandise_id
-        )
-        new_dialogue.save()
-        redis_connect = get_redis_connection('default')
-        redis_connect.set('dialogue_{}'.format(new_dialogue.id), str([new_dialogue.dialogue_user1.id,
-                                                                          new_dialogue.dialogue_user2.id]))
-        # order_list_u = redis_connect.get("session_{}".format(new_dialogue.dialogue_user.id))
-        # if not order_list_u:
-        #     order_list_u = []
-        # else:
-        #     order_list_u = literal_eval(order_list_u)
-        # order_list_u.append(new_dialogue.id)
-        # order_list_b = redis_connect.get("session_{}".format(new_dialogue.dialogue_business.id))
-        # if not order_list_b:
-        #     order_list_b = []
-        # else:
-        #     order_list_b = literal_eval(order_list_b)
-        # order_list_b.append(new_dialogue.id)
-        # redis_connect.set("session_{}".format(new_dialogue.dialogue_business.id), str(order_list_u))
-        # redis_connect.set("session_{}".format(new_dialogue.dialogue_business.id), str(order_list_b))
-        return JsonResponse({
-            'status': '200',
-            'message': '对话创建成功',
-            'dialogue_id': signer.sign_object(new_dialogue.id)
-        }, status=200)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': 'id错误，创建失败'
-    #     }, status=200)
 
 
 @login_required()
@@ -153,56 +153,56 @@ def dialogue_detail(request):
             'status': '301',
             'message': 'POST缺少字段'
         }, status=200)
-    # try:
-    dialogue_id = signer.unsign_object(dialogue_id)
-    current_dialogue = dialogue.models.Dialogue.objects.get(id=dialogue_id)
-    start_position = int(start_position)
-    end_position = int(end_position)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': 'id解码错误'
-    #     }, status=200)
-    # try:
-    info_list = current_dialogue.dialogue_info
-    info_list.sort(key=lambda x: x["date"])
-    info_list.reverse()
-    info_list_len = len(info_list)
-    return_list = []
-    current_user_wait_number = 0
-    if current_user.id == current_dialogue.dialogue_user1.id:
-        current_user_wait_number = current_dialogue.user1_wait_message_number
-        current_dialogue.user1_wait_message_number = 0
-    else:
-        current_user_wait_number = current_dialogue.user2_wait_message_number
-        current_dialogue.user2_wait_message_number = 0
-    current_dialogue.save()
-    end_position = max(end_position, current_user_wait_number+5)
-    if info_list_len > end_position:
-        has_next = True
-    else:
-        has_next = False
-    for info in info_list:
-        if int(info['which_say']) == current_user.id:
-            info['which_say'] = 0
+    try:
+        dialogue_id = signer.unsign_object(dialogue_id)
+        current_dialogue = dialogue.models.Dialogue.objects.get(id=dialogue_id)
+        start_position = int(start_position)
+        end_position = int(end_position)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'id解码错误'
+        }, status=200)
+    try:
+        info_list = current_dialogue.dialogue_info
+        info_list.sort(key=lambda x: x["date"])
+        info_list.reverse()
+        info_list_len = len(info_list)
+        return_list = []
+        current_user_wait_number = 0
+        if current_user.id == current_dialogue.dialogue_user1.id:
+            current_user_wait_number = current_dialogue.user1_wait_message_number
+            current_dialogue.user1_wait_message_number = 0
         else:
-            info['which_say'] = signer.sign_object(info['which_say'])
-    return JsonResponse(dict({
-        'dialogue_user1_id': signer.sign_object(current_dialogue.dialogue_user1.id),
-        'dialogue_user2_id': signer.sign_object(current_dialogue.dialogue_user2.id),
-        'dialogue_user1_name': current_dialogue.dialogue_user1.name,
-        'dialogue_user2_name': current_dialogue.dialogue_user2.name,
-        'dialogue_info': info_list[start_position:end_position],
-        'wait_number': current_user_wait_number,
-        'dialogue_type': current_dialogue.dialogue_type,
-        'has_next': has_next,
+            current_user_wait_number = current_dialogue.user2_wait_message_number
+            current_dialogue.user2_wait_message_number = 0
+        current_dialogue.save()
+        end_position = max(end_position, current_user_wait_number+5)
+        if info_list_len > end_position:
+            has_next = True
+        else:
+            has_next = False
+        for info in info_list:
+            if int(info['which_say']) == current_user.id:
+                info['which_say'] = 0
+            else:
+                info['which_say'] = signer.sign_object(info['which_say'])
+        return JsonResponse(dict({
+            'dialogue_user1_id': signer.sign_object(current_dialogue.dialogue_user1.id),
+            'dialogue_user2_id': signer.sign_object(current_dialogue.dialogue_user2.id),
+            'dialogue_user1_name': current_dialogue.dialogue_user1.name,
+            'dialogue_user2_name': current_dialogue.dialogue_user2.name,
+            'dialogue_info': info_list[start_position:end_position],
+            'wait_number': current_user_wait_number,
+            'dialogue_type': current_dialogue.dialogue_type,
+            'has_next': has_next,
 
-    }))
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '目标id不存在'
-    #     }, status=200)
+        }))
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '目标id不存在'
+        }, status=200)
 @login_required()
 def dialogue_list(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
@@ -269,39 +269,45 @@ def receive_img(request):
             'status': '400',
             'message': 'POST字段不全',
         }, status=200)
-    # try:
-    dialogue_id = signer.unsign_object(dialogue_id)
-    image1 = request.FILES['image1']
-    current_dialogue = dialogue.models.Dialogue.objects.get(id=dialogue_id)
-    # except:
-    #     return JsonResponse({
-    #         'status': '400',
-    #         'message': '图片错误',
-    #     }, status=200)
+    try:
+        dialogue_id = signer.unsign_object(dialogue_id)
+        image1 = request.FILES['image1']
+        current_dialogue = dialogue.models.Dialogue.objects.get(id=dialogue_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '图片错误',
+        }, status=200)
     if current_user != current_dialogue.dialogue_user1 and current_user != current_dialogue.dialogue_user2:
         return JsonResponse({
             'status': '400',
             'message': '不是你的对话',
         }, status=200)
-    reopen_img1 = Image.open(image1)
-    reopen_img1.thumbnail((200, 100), Image.ANTIALIAS)
-    img_path = os.path.join(MEDIA_ROOT, 'dialogue_{0}/user_{1}_dia/{2}'.format(
-        dialogue_id, current_user.id, 'dialogue_{1}.png'.format(current_dialogue.id, current_dialogue.image_number)))
-    img_path3 = os.path.join(MEDIA_ROOT, 'dialogue_{0}/user_{1}_dia/'.format(
-        dialogue_id, current_user.id, ))
-    isExists = os.path.exists(img_path3)
-    if not isExists:
-        os.makedirs(img_path3)
-    with open(img_path, 'wb+') as f:
-        reopen_img1.save(f, format='PNG')
-    info = dict({
-        'dia_id': current_dialogue.id,
-        'date': str(django.utils.timezone.now()),
-        'path': img_path
-    })
-    signer = TimestampSigner()
-    current_dialogue.image_number += 1
-    current_dialogue.save()
+    try:
+        reopen_img1 = Image.open(image1)
+        reopen_img1.thumbnail((200, 100), Image.ANTIALIAS)
+        img_path = os.path.join(MEDIA_ROOT, 'dialogue_{0}/user_{1}_dia/{2}'.format(
+            dialogue_id, current_user.id, 'dialogue_{1}.png'.format(current_dialogue.id, current_dialogue.image_number)))
+        img_path3 = os.path.join(MEDIA_ROOT, 'dialogue_{0}/user_{1}_dia/'.format(
+            dialogue_id, current_user.id, ))
+        isExists = os.path.exists(img_path3)
+        if not isExists:
+            os.makedirs(img_path3)
+        with open(img_path, 'wb+') as f:
+            reopen_img1.save(f, format='PNG')
+        info = dict({
+            'dia_id': current_dialogue.id,
+            'date': str(django.utils.timezone.now()),
+            'path': img_path
+        })
+        signer = TimestampSigner()
+        current_dialogue.image_number += 1
+        current_dialogue.save()
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '图片错误',
+        }, status=200)
     return JsonResponse({
             'status': '200',
             'message': '成功',

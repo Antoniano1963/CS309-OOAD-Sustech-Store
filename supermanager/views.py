@@ -93,6 +93,7 @@ def handle_problem(request):
                 current_problem.handle_superuser = current_user
                 current_problem.problem_user = current_problem.problem_transaction.transaction_sender
                 current_problem.problem_transaction.transaction_sender.problem_number += 1
+                current_problem.problem_transaction.transaction_sender.credit_points -= 0.5
                 current_problem.problem_transaction.transaction_sender.save()
                 current_problem.problem_status = 2
                 current_problem.handle_date = django.utils.timezone.now()
@@ -128,6 +129,9 @@ def handle_problem(request):
                 current_problem.problem_role = problem_role
                 current_problem.superuser_log = superuser_log
                 current_problem.handle_superuser = current_user
+                current_problem.problem_transaction.transaction_receiver.problem_number += 1
+                current_problem.problem_transaction.transaction_receiver.credit_points -= 0.5
+                current_problem.problem_transaction.transaction_receiver.save()
                 current_problem.problem_user = payer
                 current_problem.handle_date = django.utils.timezone.now()
                 current_problem.problem_status = 2
@@ -145,6 +149,7 @@ def handle_problem(request):
             try:
                 receiver = current_problem.problem_transaction.transaction_receiver
                 receiver.problem_number += 1
+                receiver.credit_points -= 0.5
                 receiver.save()
                 current_problem.problem_role = problem_role
                 current_problem.superuser_log = superuser_log
@@ -152,6 +157,8 @@ def handle_problem(request):
                 current_problem.handle_date = django.utils.timezone.now()
                 current_problem.problem_status = 2
                 current_problem.save()
+                current_problem.problem_transaction.transaction_receiver.problem_number += 1
+                current_problem.problem_transaction.transaction_receiver.save()
                 current_problem.problem_transaction.has_problem = False
                 current_problem.problem_transaction.save()
             except:
@@ -172,6 +179,7 @@ def handle_problem(request):
             try:
                 sender = current_problem.problem_transaction.transaction_sender
                 sender.problem_number += 1
+                sender.credit_points -= 0.5
                 sender.save()
                 current_problem.problem_role = problem_role
                 current_problem.superuser_log = superuser_log
