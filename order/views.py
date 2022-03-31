@@ -97,7 +97,7 @@ def post_transaction(request:HttpRequest):
     signer = TimestampSigner()
     if not rec_address_id:
         return JsonResponse({
-            'status': '200',
+            'status': '400',
             'message': '请完善收货地址',
         }, status=200)
     else:
@@ -106,7 +106,7 @@ def post_transaction(request:HttpRequest):
             rec_addr = user.models.Address.objects.get(id=rec_address_id)
         except:
             return JsonResponse({
-                'status': '200',
+                'status': '400',
                 'message': '地址id错误',
             }, status=200)
     try:
@@ -165,6 +165,7 @@ def post_transaction(request:HttpRequest):
             'message': '创建订单失败',
         }, status=200)
     transaction.savepoint_commit(sid)
+    server_cart_del(new_transaction.transaction_merchandise.id, current_user.id)
     if current_sender.credit_points < 6:
         send_notice(current_user.id, '商家信誉不足，推荐使用虚拟货币进行支付', current_user=current_user, rela_mer=current_mer)
     return JsonResponse({
@@ -304,7 +305,8 @@ def commit_transaction_total(request):
                 'message': '订单异常',
             }, status=200)
         try:
-            current_tra.receiver_location = change_location
+            if rec_address_id:
+                current_tra.receiver_location = change_location
             if current_tra.transaction_merchandise.status != 5:
                 raise Exception
             current_user.money -= current_tra.total_price
@@ -315,6 +317,7 @@ def commit_transaction_total(request):
             current_tra.save()
             current_user.save()
             current_tra.transaction_merchandise.save()
+            server_cart_del(current_tra.transaction_merchandise.id, current_user.id)
         except Exception as e:
             transaction.savepoint_rollback(sid)
             return JsonResponse({
@@ -349,7 +352,7 @@ def commit_transaction_virtual(request):
     pay_password = request.POST.get('pay_password', None)
     if not all((current_tra_id, pay_password)):
         return JsonResponse({
-            'status': '200',
+            'status': '400',
             'message': 'POST字段不全',
         }, status=200)
     if not check_args_valid([current_tra_id, pay_password]):
@@ -442,7 +445,7 @@ def commit_transaction_face(request:HttpRequest):
         }, status=200)
     if not current_tra_id:
         return JsonResponse({
-            'status': '200',
+            'status': '400',
             'message': 'POST字段不全',
         }, status=200)
     if not check_args_valid([current_tra_id]):
@@ -1057,4 +1060,41 @@ def transaction_has_problem(request):
     return JsonResponse({
         'status': '200',
         'message': '成功',
+    }, status=200)
+
+
+@login_required()
+def get_tra_rela_problem(request):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    tra_id = request.POST.get('tra_id', None)
+    if not tra_id:
+        return JsonResponse({
+                'status': '400',
+                'message': 'POST字段不全',
+            }, status=200)
+    try:
+        signer = TimestampSigner()
+        tra_id = signer.unsign_object(tra_id)
+        current_tra = Transaction.objects.get(id=tra_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': 'id解码错误',
+        }, status=200)
+    if not current_tra.has_problem:
+        return JsonResponse({
+            'status': '400',
+            'message': '顶点不存在problem',
+        }, status=200)
+    try:
+        rela_problem = TransactionProblem.objects.get(id=current_tra.rela_problem_id)
+    except:
+        return JsonResponse({
+            'status': '400',
+            'message': '系统错误',
+        }, status=200)
+    return JsonResponse({
+        'status': '200',
+        'message': '成功',
+        'problem_detail': rela_problem.get_detail_info()
     }, status=200)

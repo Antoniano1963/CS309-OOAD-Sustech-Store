@@ -75,7 +75,7 @@ def login_fuc(request):
                 if not user:
                     return JsonResponse({
                         'status': '402',
-                        'message': 'User not exist {}'.format(user_email_name)
+                        'message': '用户不存在{'.format(user_email_name)
                     })
             current_user = users[0]
             if current_user.password == hash_code(password):
@@ -99,7 +99,7 @@ def login_fuc(request):
         except:
             return JsonResponse({
                 'status': '402',
-                'message': 'User not exist {}'.format(user_email_name)
+                'message': '用户不存在 {}'.format(user_email_name)
             })
     return HttpResponse("Wrong request in {}".format(request.method), status=200)
 
@@ -116,7 +116,7 @@ def register(request):
         if request.session.get('is_login', False):
             return JsonResponse({
                 'status': '300',
-                'message': 'User already login {}'.format(request.session.get('user_name', 'unknown_name'))
+                'message': '用户已经登录 {}'.format(request.session.get('user_name', 'unknown_name'))
             })
         if request.POST.get("status") == '0':
             user_email = request.POST.get('user_email')
@@ -149,7 +149,7 @@ def register(request):
                 password = request.POST.get('password', None)
                 email = request.POST.get('user_email', None)
                 if not all((email, username, password)):
-                    message = 'email username password 不能为空'
+                    message = 'POST字段不全'
                     request.session.flush()
                     return JsonResponse({'message': message, 'status': '510'})
                 if not check_args_valid([username, password, email]):
@@ -247,7 +247,7 @@ def mobile_login(request):
                 if not users:
                     return JsonResponse({
                         'status': '402',
-                        'message': 'User not exist {}'.format(user_email_name)
+                        'message': '用户不存在 {}'.format(user_email_name)
                     })
             current_user = users[0]
             if current_user.password == hash_code(password):
@@ -269,10 +269,10 @@ def mobile_login(request):
                 })
         except:
             response = HttpResponse(status=200)
-            response.headers['message'] = 'User not exist {}, {}'.format(user_email_name, password)
+            response.headers['message'] = '用户不存在 {}, {}'.format(user_email_name, password)
             return JsonResponse({
                 'status': '402',
-                'message': 'User not exist {}'.format(user_email_name)
+                'message': '用户不存在 {}'.format(user_email_name)
             })
     return HttpResponse(status=500)
 
@@ -457,7 +457,7 @@ def delete_commodity(request):
 def wait_payment_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     all_user_transaction_wait_payment = Transaction.objects.filter(
         transaction_receiver=current_user).filter(status__exact=1)
     transaction_list = []
@@ -487,7 +487,7 @@ def wait_payment_fuc(request):
 def wait_deliver_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -518,7 +518,7 @@ def wait_deliver_fuc(request):
 def wait_receiving_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -548,7 +548,7 @@ def wait_receiving_fuc(request):
 def wait_comment_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -577,7 +577,7 @@ def wait_comment_fuc(request):
 def success_fuc(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -606,7 +606,7 @@ def success_fuc(request):
 def wait_payment_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -636,7 +636,7 @@ def wait_payment_fuc_seller(request):
 def wait_deliver_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -667,7 +667,7 @@ def wait_deliver_fuc_seller(request):
 def wait_receiving_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -697,7 +697,7 @@ def wait_receiving_fuc_seller(request):
 def wait_comment_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -726,7 +726,7 @@ def wait_comment_fuc_seller(request):
 def success_fuc_seller(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -758,7 +758,7 @@ file_url = FILE_URL
 def all_user_selling_merchandise(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     return_list = get_user_selling(current_user.id)
     try:
         start_position = int(start_position)
@@ -790,7 +790,7 @@ def all_user_selling_merchandise(request):
 def all_user_upload_merchandise(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     selling_List = commodity.models.Merchandise.objects.filter(
         upload_user_id__exact=current_user.id).filter(status__exact=1)
     return_list = []
@@ -837,7 +837,7 @@ def all_user_favorite_merchandise(request):
         }, status=200)
 
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -880,7 +880,7 @@ def all_user_favorite_business(request):
         }, status=200)
 
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -1038,7 +1038,7 @@ def delete_address(request):
 def get_address_list(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -1269,21 +1269,42 @@ def upload_QR_Code(request:HttpRequest):
 @login_required(status=1)
 def get_QR_Code(request:HttpRequest):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
-    user_id = request.POST.get('user_id', None)
     signer = TimestampSigner()
-    try:
-        user_id = signer.unsign_object(user_id)
-        uploader = user.models.User.objects.get(id=user_id)
-    except:
-        return JsonResponse({
-            'status': '400',
-            'message': 'id错误'
-        }, status=200)
-    QR_code_url = f"{file_url}{signer.sign_object(uploader.get_QRCode_info())}",
+    QR_code_url = f"{file_url}{signer.sign_object(current_user.get_QRCode_info())}",
     return JsonResponse({
         'status': '200',
         'message': '查询成功',
         'QR_code_url':QR_code_url,
+    }, status=200)
+
+
+@transaction.atomic
+@login_required(status=2)
+def change_QR_Code(request:HttpRequest):
+    current_user = user.models.User.objects.get(id=request.session.get('user_id'))
+    user_id = request.POST.get('user_id', None)
+    try:
+        current_QR_Code = request.FILES['QR_Code']
+    except:
+        return JsonResponse({
+            'status': '201',
+            'message': '用户未上传图片'
+        }, status=200)
+    signer = TimestampSigner()
+    sid = transaction.savepoint()
+    try:
+        current_user.money_receiving_QR_code = current_QR_Code
+        current_user.save()
+    except:
+        transaction.savepoint_rollback(sid)
+        return JsonResponse({
+            'status': '400',
+            'message': '更改失败'
+        }, status=200)
+    transaction.savepoint_commit(sid)
+    return JsonResponse({
+        'status': '200',
+        'message': '更改付款码成功'
     }, status=200)
 
 
@@ -1336,6 +1357,11 @@ def add_cart(request:HttpRequest) -> JsonResponse:
             return JsonResponse({
                 'status': '400',
                 'message': '不能添加自己的商品进购物车'
+            }, status=200)
+        if current_mer.status != 1:
+            return JsonResponse({
+                'status': '400',
+                'message': '商品状态错误'
             }, status=200)
         conn = get_redis_connection('default')
         key = "cart_{}".format(current_user.id)
@@ -1415,11 +1441,14 @@ def cart_del(request):
             'status': '400',
             'message': 'POST字段错误'
         })
-    current_mer = commodity.models.Merchandise.objects.filter(id__exact=mer_id)
-    if not current_mer:
+    signer = TimestampSigner()
+    try:
+        mer_id = signer.unsign_object(mer_id)
+        current_mer = commodity.models.Merchandise.objects.filter(id__exact=mer_id)
+    except:
         return JsonResponse({
             'status': '400',
-            'message': '商品不存在'
+            'message': 'id错误'
         }, status=200)
     conn = get_redis_connection('default')
     cart_key = 'cart_{}'.format(current_user.id)
@@ -1488,7 +1517,7 @@ def get_notification_list(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     notification_list = current_user.notice_info_unread
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     end_position = max(len(notification_list) + 10, end_position)
     return_list = []
     try:
@@ -1611,7 +1640,7 @@ def get_all_comments(request):
             'message': 'POST字段不全'
         }, status=200)
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     signer = TimestampSigner()
     try:
         start_position = int(start_position)
@@ -1655,7 +1684,8 @@ def get_recommend_list(request):
     key = "recommend_list"
     conn = get_redis_connection('default')
     recommend_list = conn.get(key)
-    recommend_list = literal_eval(recommend_list)
+    if recommend_list:
+        recommend_list = literal_eval(recommend_list)
     user_recommend_list = current_user.user_recommend_list
     return_id_list = []
     for mer_id in user_recommend_list:
@@ -1691,7 +1721,7 @@ def get_recommend_list(request):
 def get_problem_list(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)

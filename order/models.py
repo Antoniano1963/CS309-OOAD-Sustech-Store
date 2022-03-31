@@ -162,7 +162,8 @@ class TransactionProblem(models.Model):
             'superuser_log': self.superuser_log,
             'handle_date': self.handle_date,
             'handle_superuser': self.handle_superuser.get_base_info() if self.handle_superuser else 'No superuser',
-
+            'problem_status': self.problem_status,
+            'problem_role': self.problem_role,
         })
 
 

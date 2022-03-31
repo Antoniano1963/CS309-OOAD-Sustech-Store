@@ -60,19 +60,31 @@ def is_user_online(user_id):
     is_online = redis_connect.get('is_online_{}'.format(user_id))
     if not is_online:
         return False
-    if is_online == str(False):
+    if int(is_online) == 0:
         return False
     return True
 
 
 def set_user_outline(user_id):
     redis_connect = get_redis_connection('default')
-    redis_connect.set('is_online_{}'.format(user_id), str(False))
+    last_num = redis_connect.get('is_online_{}'.format(user_id))
+    if last_num:
+        last_num = int(last_num)
+        if last_num == 0:
+            last_num = 1
+    else:
+        last_num = 1
+    redis_connect.set('is_online_{}'.format(user_id), last_num-1)
 
 
 def set_user_online(user_id):
     redis_connect = get_redis_connection('default')
-    redis_connect.set('is_online_{}'.format(user_id), str(True))
+    last_num = redis_connect.get('is_online_{}'.format(user_id))
+    if last_num:
+        last_num = int(last_num)
+    else:
+        last_num = 0
+    redis_connect.set('is_online_{}'.format(user_id), last_num+1)
 
 
 def add_info_to_dialogue(user_id, dialogue_id, message, data_type=1):

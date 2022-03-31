@@ -147,7 +147,7 @@ def dialogue_detail(request):
     signer = TimestampSigner()
     dialogue_id = request.POST.get('dialogue_id', None)
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     if not dialogue_id:
         return JsonResponse({
             'status': '301',
@@ -207,7 +207,7 @@ def dialogue_detail(request):
 def dialogue_list(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = int(request.POST.get('start_position', 0))
-    end_position = int(request.POST.get('end_position', 10))
+    end_position = int(request.POST.get('end_position', 30))
     dialogues_List = dialogue.models.Dialogue.objects.filter(dialogue_type=1).filter(
         Q(dialogue_user1=current_user) |Q(dialogue_user2=current_user)).order_by('update_date').all().reverse()
     return_dia_list = []

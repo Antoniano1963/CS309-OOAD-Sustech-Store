@@ -28,12 +28,12 @@ urlpatterns = [
     # url('change_default_addr/', views.change_default_addr),
     url('upload_head_photo/', views.upload_head_photo),
     url('get_user_details/', views.get_user_details),
-    url('upload_QR_Code/', views.upload_QR_Code),
+    # url('upload_QR_Code/', views.upload_QR_Code),
     url('modify_self_info/', views.modify_self_info),
     url('add_address/', views.add_address),
     url('recharge/', views.recharge),
     url('upload_head_photo/', views.upload_head_photo),
-    url('upload_QR_code/', views.upload_QR_Code),
+    # url('upload_QR_code/', views.upload_QR_Code),
     url('add_cart/', views.add_cart),
     url('cart_show/', views.cart_show),
     url('cart_del/', views.cart_del),
@@ -59,5 +59,6 @@ urlpatterns = [
     url('forget_password_email/', views.forget_password_email),
     url('get_current_user_info/', views.get_current_user_info),
     url('upload_user_position/', views.upload_user_position),
+    url('change_QR_Code/', views.change_QR_Code),
 
 ]

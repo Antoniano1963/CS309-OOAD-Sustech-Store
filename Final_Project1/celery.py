@@ -117,8 +117,9 @@ def send_active_email(code, email, current_user_name, img_url, price, mer_name='
         html_message = change_pwd.format(username=current_user_name, code=code)
         # html_message = html_message3
     print(code)
-    print(html_message)
+    # print(html_message)
     print(receiver)
+
     send_mail(subject, message, sender, receiver, html_message=html_message)
 
 
@@ -257,3 +258,14 @@ def create_recommend_list_by_browsing():
         id_list.append(mer.id)
     key = "recommend_list"
     conn.set(key, str(id_list[0:30]))
+
+
+@app.task(name = 'add_credit_score')
+def add_credit_score():
+    import user.models
+    user_List = user.models.User.objects.all()
+    for user in user_List:
+        user.credit_points += 1
+        if user.credit_points >= 10:
+            user.credit_points = 10
+        

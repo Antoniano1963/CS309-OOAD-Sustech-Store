@@ -14,5 +14,6 @@ urlpatterns = [
     url('search_by_class_label_all/', views.search_by_class_label_all),
     url('favorite_business_cancel_handler/', views.favorite_business_cancel_handler),
     url('favorite_merchandise_cancel_handler/', views.favorite_merchandise_cancel_handler),
+    url('history_browsing_mer/', views.history_browsing_mer),
 
 ]

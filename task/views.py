@@ -295,7 +295,7 @@ def get_task_list(request):
             for i in mer_list_new.all():
                 return_list.append(i.get_simple_info())
         start_position = int(request.POST.get('start_position', 0))
-        end_position = int(request.POST.get('end_position', 10))
+        end_position = int(request.POST.get('end_position', 30))
         return JsonResponse({
                 'status': '200',
                 'message': '查询成功',
@@ -619,7 +619,7 @@ def task_comment(request):
 def task_wait_sender_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -649,7 +649,7 @@ def task_wait_sender_list_up(request):
 def task_wait_receive_object_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -679,7 +679,7 @@ def task_wait_receive_object_list_up(request):
 def task_wait_send_to_place_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -709,7 +709,7 @@ def task_wait_send_to_place_list_up(request):
 def task_wait_confirm_receive_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -739,7 +739,7 @@ def task_wait_confirm_receive_list_up(request):
 def task_wait_confirm_comment_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -769,7 +769,7 @@ def task_wait_confirm_comment_list_up(request):
 def task_wait_confirm_success_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -799,7 +799,7 @@ def task_wait_confirm_success_list_up(request):
 def task_wait_receive_object_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -829,7 +829,7 @@ def task_wait_receive_object_list_sender(request):
 def task_wait_send_to_place_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -859,7 +859,7 @@ def task_wait_send_to_place_list_sender(request):
 def task_wait_confirm_receive_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -889,7 +889,7 @@ def task_wait_confirm_receive_list_sender(request):
 def task_wait_comment_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -919,7 +919,7 @@ def task_wait_comment_list_sender(request):
 def task_wait_confirm_success_list_sender(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -949,7 +949,7 @@ def task_wait_confirm_success_list_sender(request):
 def task_all_relative_list_receive(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -1022,7 +1022,7 @@ def transaction_relation_task(request):
 def get_recommend_tasks(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -1050,7 +1050,7 @@ def get_recommend_tasks(request):
 def get_all_task_list_up(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -1078,7 +1078,7 @@ def get_all_task_list_up(request):
 def get_all_task_list_tasker(request):
     current_user = user.models.User.objects.get(id=request.session.get('user_id'))
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)
@@ -1143,3 +1143,6 @@ def get_position_code(request):
             'longitude': longitude,
             'latitude': latitude,
         }, status=200)
+
+
+

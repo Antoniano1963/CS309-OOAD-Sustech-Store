@@ -25,7 +25,7 @@ def problems_list(request):
     #         'message': '不是管理员',
     #     }, status=500)
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)

@@ -21,4 +21,5 @@ urlpatterns = [
     url('commit_transaction_QR_code_commit/', views.commit_transaction_QR_code_commit),
     # url('commit_transaction_QR_code_commit_receive/', views.commit_transaction_QR_code_commit_receive),
     url('commit_transaction_face/', views.commit_transaction_face),
+    url('get_tra_rela_problem/', views.get_tra_rela_problem),
 ]

@@ -118,6 +118,8 @@ def commodity_detail(request):
         'allow_face_trade': current_merchandise.allow_face_trade,
         'as_favorite_number': len(current_merchandise.who_favourite),
         'mer_status': current_merchandise.status,
+        'browsing': current_merchandise.browse_number,
+        'fineness': current_merchandise.fineness,
     }, status=200)
 
 
@@ -362,7 +364,7 @@ def search_by_class_label_all(request):
     fineness_id = request.POST.get('fineness_id', None)
     search_str = request.POST.get('search_str', None)
     start_position = request.POST.get('start_position', 0)
-    end_position = request.POST.get('end_position', 10)
+    end_position = request.POST.get('end_position', 30)
     try:
         start_position = int(start_position)
         end_position = int(end_position)

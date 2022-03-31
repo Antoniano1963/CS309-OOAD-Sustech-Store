@@ -34,22 +34,6 @@ class QuestionModelTests(TestCase):
             password=hash_code('123456'),
             email='11912821@mail.sustech.edu.cn'
         )
-        cls.foo2 = ClassLevel1.objects.create(
-            name=1,
-            name_str='运动户外',
-
-        )
-        cls.foo3 = ClassLevel2.objects.create(
-            name=1,
-            name_str='运动服',
-            parent_class=cls.foo2
-        )
-        cls.foo4 = ClassLevel2.objects.create(
-            name=2,
-            name_str='运动鞋',
-            parent_class=cls.foo2
-        )
-
     def test_login(self):
         """
         was_published_recently() returns False for questions whose pub_date
@@ -150,7 +134,7 @@ class QuestionModelTests(TestCase):
         was_published_recently() returns False for questions whose pub_date
         is in the future.
         """
-        with open('user/1.png', 'rb') as fp:
+        with open('user/1.jpg', 'rb') as fp:
             self.client.cookies.clear()
             reponse0 = self.client.post('/api/login0/pc_login/', {'user_email': 'Antoniano1963', 'password': '123456'})
             self.assertEqual(reponse0.json()['status'], '200')
@@ -203,6 +187,9 @@ class QuestionModelTests(TestCase):
                                          })
             self.assertEqual(reponse2.json()['status'], '200')
             # self.assertEqual(reponse2.json()['message'], "用户状态错误")
+
+
+
 
 
 

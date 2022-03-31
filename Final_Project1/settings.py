@@ -169,7 +169,7 @@ CHANNEL_LAYERS = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/2",
+        "LOCATION": "redis://127.0.0.1:6379/3",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "PASSWORD": "",
@@ -215,7 +215,8 @@ HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 6 # 指定搜索结果每页的条数
 
-FILE_URL = "http://store2.sustech.xyz:8080/api/commodity/download/?key="
+FILE_URL = "http://store2.sustech.xyz/api/commodity/download/?key="
+# FILE_URL = "http://192.168.208.223:8080/api/commodity/download/?key="
 
 # CACHALOT_ENABLED = True
 # CACHALOT_CACHE_RANDOM = True
